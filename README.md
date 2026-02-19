@@ -21,6 +21,24 @@ Then open:
 pytest
 ```
 
+## Database migrations
+
+The app uses Alembic to manage the SQLite schema. Run these commands from the repo root:
+
+```bash
+# Apply all pending migrations (creates data/app.db on first run):
+alembic upgrade head
+
+# After adding or changing ORM models, generate a new migration:
+alembic revision --autogenerate -m "describe your change"
+
+# Roll back one step:
+alembic downgrade -1
+```
+
+> `data/app.db` is gitignored. The `data/` directory is created automatically
+> on first run (by `database.py` or `alembic upgrade head`).
+
 ## Deploying to Render
 
 1. Push code to GitHub.
@@ -49,11 +67,16 @@ pytest
 ```
 src/
   app/
-    config.py        # APP_ENV + SECRET_KEY read from environment
+    config.py        # APP_ENV + SECRET_KEY settings (read from environment)
+    database.py      # SQLAlchemy engine, SessionLocal, DeclarativeBase
     main.py          # FastAPI app entrypoint
     templates/       # Jinja2 SSR templates
       base.html
       index.html
+alembic/             # Alembic migration environment
+  env.py             # Wired to src.app.database.Base.metadata
+  versions/          # Generated migration files
+alembic.ini          # Alembic configuration
 .env.example         # Copy to .env for local dev (gitignored)
 requirements.txt
 ```
