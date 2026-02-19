@@ -15,6 +15,12 @@ Then open:
 - http://127.0.0.1:8000/ — landing page
 - http://127.0.0.1:8000/health — health check
 
+## Testing
+
+```bash
+pytest
+```
+
 ## Project structure
 
 ```
