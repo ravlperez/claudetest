@@ -13,8 +13,9 @@ if config.config_file_name is not None:
 
 # --- App wiring ----------------------------------------------------------
 # Import the shared DeclarativeBase so Alembic can diff the schema against
-# all registered models (populated in TASK 4+).
+# all registered models.
 from src.app.database import Base, DATABASE_URL  # noqa: E402
+import src.app.models  # noqa: F401 — registers all ORM models with Base.metadata
 
 # Override the URL in alembic.ini with whatever DATABASE_URL env var says.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
