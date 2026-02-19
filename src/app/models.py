@@ -14,7 +14,16 @@ Tables (9):
 """
 
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def _utcnow() -> datetime:
+    """Return the current UTC time as a naive datetime (timezone info stripped).
+
+    Replaces the deprecated datetime.utcnow() while keeping stored values
+    consistent (naive UTC datetimes in SQLite).
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -74,7 +83,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[Role] = mapped_column(Enum(Role), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     # Relationships
@@ -108,7 +117,7 @@ class LearnerProfile(Base):
     )
     total_xp: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     user: Mapped["User"] = relationship(back_populates="learner_profile")
@@ -125,7 +134,7 @@ class CreatorProfile(Base):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     user: Mapped["User"] = relationship(back_populates="creator_profile")
@@ -165,7 +174,7 @@ class VideoContent(Base):
         DateTime, nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     creator: Mapped["User"] = relationship(back_populates="video_contents")
@@ -186,7 +195,7 @@ class Quiz(Base):
         Integer, ForeignKey("video_content.id"), unique=True, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     content: Mapped["VideoContent"] = relationship(back_populates="quiz")
@@ -217,7 +226,7 @@ class Question(Base):
     )  # JSON-encoded list of option strings
     correct_option_index: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
 
     quiz: Mapped["Quiz"] = relationship(back_populates="questions")
@@ -276,7 +285,7 @@ class XPEvent(Base):
     reason: Mapped[XPReason] = mapped_column(Enum(XPReason), nullable=False)
     xp_amount: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.utcnow
+        DateTime, nullable=False, default=_utcnow
     )
     created_date_utc: Mapped[str] = mapped_column(
         String(10), nullable=False, index=True
