@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Set Up Your Profile – Language App{% endblock %}
+{% block content %}
+<h1>Set up your learning profile</h1>
+<p>Choose the language you want to learn and your current level.</p>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/onboarding">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div>
+    <label for="target_language">Target language</label><br>
+    <select id="target_language" name="target_language">
+      <option value="en">English</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
+    </select>
+  </div>
+  <br>
+  <div>
+    <label for="level">Your current level</label><br>
+    <select id="level" name="level">
+      <option value="A1">A1 – Beginner</option>
+      <option value="A2">A2 – Elementary</option>
+      <option value="B1">B1 – Intermediate</option>
+      <option value="B2">B2 – Upper Intermediate</option>
+      <option value="C1">C1 – Advanced</option>
+      <option value="C2">C2 – Mastery</option>
+    </select>
+  </div>
+  <br>
+  <button type="submit">Save and go to feed</button>
+</form>
+{% endblock %}

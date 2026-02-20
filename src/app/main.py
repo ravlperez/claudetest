@@ -7,6 +7,8 @@ from fastapi.templating import Jinja2Templates
 
 from src.app.database import engine
 from src.app.routers import auth as auth_router
+from src.app.routers import creator as creator_router
+from src.app.routers import learner as learner_router
 
 BASE_DIR = pathlib.Path(__file__).parent
 
@@ -23,6 +25,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Language App", lifespan=lifespan)
 
 app.include_router(auth_router.router)
+app.include_router(creator_router.router)
+app.include_router(learner_router.router)
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from src.app.config import IS_PROD, SECRET_KEY
 from src.app.database import get_db
-from src.app.models import User
+from src.app.models import Role, User
 
 # ── Password hashing ──────────────────────────────────────────────────────────
 
@@ -81,6 +81,20 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+def require_learner(current_user: User = Depends(get_current_user)) -> User:
+    """Return the User if they are a learner; raise HTTP 403 otherwise."""
+    if current_user.role != Role.learner:
+        raise HTTPException(status_code=403, detail="Learner access only")
+    return current_user
+
+
+def require_creator(current_user: User = Depends(get_current_user)) -> User:
+    """Return the User if they are a creator; raise HTTP 403 otherwise."""
+    if current_user.role != Role.creator:
+        raise HTTPException(status_code=403, detail="Creator access only")
+    return current_user
 
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────

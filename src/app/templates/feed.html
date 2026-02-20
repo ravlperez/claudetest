@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Feed – Language App{% endblock %}
+{% block content %}
+<h1>Your Feed</h1>
+<p>
+  Learning <strong>{{ profile.target_language.value | upper }}</strong>
+  at level <strong>{{ profile.level.value }}</strong>.
+  &nbsp;<a href="/onboarding">Change</a>
+</p>
+
+<div id="feed-container">
+  {% for video in items %}
+  <div class="video-card" style="margin-bottom:2rem;border-bottom:1px solid #ccc;padding-bottom:1rem;">
+    <h3>{{ video.title }}</h3>
+    {% if video.caption %}<p>{{ video.caption }}</p>{% endif %}
+    <video controls width="100%" style="max-width:640px;display:block;">
+      <source src="{{ video.video_url }}" type="video/mp4">
+      Your browser does not support the video element.
+    </video>
+    <small style="color:#888;">
+      {{ video.language.value | upper }} · {{ video.level.value }}
+      {% if video.published_at %}· {{ video.published_at.strftime('%Y-%m-%d') }}{% endif %}
+    </small>
+  </div>
+  {% else %}
+  <p id="empty-state">No videos available yet for your language and level. Check back soon!</p>
+  {% endfor %}
+</div>
+
+{% if next_cursor %}
+<button id="load-more-btn" data-cursor="{{ next_cursor }}" style="margin-top:1rem;padding:0.5rem 1rem;">
+  Load more
+</button>
+{% endif %}
+
+<script>
+(function () {
+  "use strict";
+  const btn = document.getElementById("load-more-btn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+
+    const cursor = btn.dataset.cursor;
+    let data;
+    try {
+      const res = await fetch(
+        "/api/feed?cursor=" + encodeURIComponent(cursor) + "&limit=10",
+        { credentials: "same-origin" }
+      );
+      if (!res.ok) {
+        alert("Failed to load more videos (status " + res.status + ").");
+        btn.disabled = false;
+        btn.textContent = "Load more";
+        return;
+      }
+      data = await res.json();
+    } catch (err) {
+      alert("Network error. Please try again.");
+      btn.disabled = false;
+      btn.textContent = "Load more";
+      return;
+    }
+
+    const container = document.getElementById("feed-container");
+
+    // Remove empty-state message if present
+    const empty = document.getElementById("empty-state");
+    if (empty) empty.remove();
+
+    for (const v of data.items) {
+      const card = document.createElement("div");
+      card.className = "video-card";
+      card.style.cssText = "margin-bottom:2rem;border-bottom:1px solid #ccc;padding-bottom:1rem;";
+
+      const title = document.createElement("h3");
+      title.textContent = v.title;
+      card.appendChild(title);
+
+      if (v.caption) {
+        const caption = document.createElement("p");
+        caption.textContent = v.caption;
+        card.appendChild(caption);
+      }
+
+      const video = document.createElement("video");
+      video.controls = true;
+      video.style.cssText = "max-width:640px;display:block;width:100%;";
+
+      const source = document.createElement("source");
+      source.src = v.video_url;
+      source.type = "video/mp4";
+      video.appendChild(source);
+      video.appendChild(document.createTextNode("Your browser does not support the video element."));
+      card.appendChild(video);
+
+      const meta = document.createElement("small");
+      meta.style.color = "#888";
+      const pubDate = v.published_at ? v.published_at.slice(0, 10) : "";
+      meta.textContent = v.language.toUpperCase() + " · " + v.level + (pubDate ? " · " + pubDate : "");
+      card.appendChild(meta);
+
+      container.appendChild(card);
+    }
+
+    if (data.next_cursor) {
+      btn.dataset.cursor = data.next_cursor;
+      btn.disabled = false;
+      btn.textContent = "Load more";
+    } else {
+      btn.remove();
+    }
+  });
+}());
+</script>
+{% endblock %}
