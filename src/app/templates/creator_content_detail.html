@@ -46,14 +46,17 @@
 <!-- ── Quiz status ─────────────────────────────────────────────────── -->
 <h2>Quiz</h2>
 {% if quiz %}
-  <p>Quiz attached — <strong>{{ q_count }}</strong> question{{ 's' if q_count != 1 else '' }}.</p>
+  <p>
+    Quiz attached — <strong>{{ q_count }}</strong> question{{ 's' if q_count != 1 else '' }}.
+    &nbsp;<a href="/creator/content/{{ content.id }}/quiz">Edit quiz</a>
+  </p>
   {% if q_count < 3 %}
-    <p style="color:orange;">⚠ Minimum 3 questions required before publishing. Add more in TASK 11.</p>
+    <p style="color:orange;">⚠ Minimum 3 questions required before publishing.</p>
   {% elif q_count > 5 %}
-    <p style="color:orange;">⚠ Maximum 5 questions allowed. Remove some in TASK 11.</p>
+    <p style="color:orange;">⚠ Maximum 5 questions allowed.</p>
   {% endif %}
 {% else %}
-  <p id="quiz-missing">No quiz yet. Add one in the next step (TASK 11).</p>
+  <p id="quiz-missing">No quiz yet. <a href="/creator/content/{{ content.id }}/quiz">Add quiz</a></p>
 {% endif %}
 
 <!-- ── Publish section ─────────────────────────────────────────────── -->

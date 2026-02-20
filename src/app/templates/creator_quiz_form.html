@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Quiz for {{ content.title }} – Language App{% endblock %}
+{% block content %}
+<p><a href="/creator/content/{{ content.id }}">← Back to content</a></p>
+<h1>{% if existing_quiz %}Edit{% else %}Add{% endif %} Quiz</h1>
+<p><strong>{{ content.title }}</strong></p>
+<p>Add <strong>3–5 multiple-choice questions</strong>. Each question needs a prompt,
+   at least 2 options, and one correct answer marked.</p>
+
+<div id="quiz-form">
+  {% for slot in range(1, 6) %}
+  <fieldset id="q{{ slot }}" style="margin-bottom:1.5rem; padding:1rem; border:1px solid #ddd; border-radius:4px;">
+    <legend>
+      Question {{ slot }}
+      {% if slot <= 3 %}<span style="color:#c00;"> (required)</span>{% else %} <span style="color:#888;">(optional)</span>{% endif %}
+    </legend>
+
+    <div style="margin-bottom:0.75rem;">
+      <label><strong>Prompt</strong></label><br>
+      <textarea id="q{{ slot }}_prompt" rows="2"
+                style="width:100%; max-width:560px; padding:0.3rem;"
+                placeholder="e.g. Which form is correct?"></textarea>
+    </div>
+
+    <div style="margin-bottom:0.5rem;"><strong>Options</strong> (mark the correct one)</div>
+    {% for opt in range(1, 5) %}
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+      <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+             id="q{{ slot }}_r{{ opt }}">
+      <label for="q{{ slot }}_r{{ opt }}" style="min-width:2rem;">{{ ["A","B","C","D"][opt-1] }}</label>
+      <input type="text" id="q{{ slot }}_opt{{ opt }}"
+             style="flex:1; max-width:320px; padding:0.25rem;"
+             placeholder="Option {{ ["A","B","C","D"][opt-1] }}">
+    </div>
+    {% endfor %}
+    <!-- Extra options (5th and 6th) — hidden by default -->
+    {% for opt in range(5, 7) %}
+    <div id="q{{ slot }}_extra{{ opt }}"
+         style="display:none; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+      <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+             id="q{{ slot }}_r{{ opt }}">
+      <label for="q{{ slot }}_r{{ opt }}" style="min-width:2rem;">{{ ["E","F"][opt-5] }}</label>
+      <input type="text" id="q{{ slot }}_opt{{ opt }}"
+             style="flex:1; max-width:320px; padding:0.25rem;"
+             placeholder="Option {{ ["E","F"][opt-5] }}">
+    </div>
+    {% endfor %}
+    <div style="margin-top:0.4rem;">
+      <button type="button" class="add-opt-btn" data-q="{{ slot }}"
+              style="font-size:0.85rem;">+ Add option</button>
+      <button type="button" class="rm-opt-btn" data-q="{{ slot }}"
+              style="font-size:0.85rem; display:none;">− Remove last option</button>
+    </div>
+  </fieldset>
+  {% endfor %}
+
+  <button id="submit-btn" type="button" style="padding:0.5rem 1.5rem; font-size:1rem;">
+    Save Quiz
+  </button>
+  <div id="form-status" style="margin-top:1rem;" aria-live="polite"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Existing quiz data (null if new) ──────────────────────────────── */
+  const EXISTING = {{ existing_quiz | tojson }};
+  const CONTENT_ID = {{ content.id }};
+  const NUM_SLOTS = 5;
+
+  /* ── Pre-fill from existing quiz ───────────────────────────────────── */
+  if (EXISTING && EXISTING.questions) {
+    EXISTING.questions.forEach(function (q, i) {
+      var slot = i + 1;
+      if (slot > NUM_SLOTS) return;
+      var promptEl = document.getElementById("q" + slot + "_prompt");
+      if (promptEl) promptEl.value = q.prompt;
+
+      q.options.forEach(function (opt, j) {
+        var optEl = document.getElementById("q" + slot + "_opt" + (j + 1));
+        if (optEl) {
+          optEl.value = opt;
+          // Reveal 5th / 6th option containers if needed
+          if (j >= 4) {
+            var container = document.getElementById("q" + slot + "_extra" + (j + 1));
+            if (container) container.style.display = "flex";
+          }
+        }
+      });
+
+      var radioEl = document.getElementById("q" + slot + "_r" + (q.correct_option_index + 1));
+      if (radioEl) radioEl.checked = true;
+    });
+  }
+
+  /* ── Add / remove option buttons ───────────────────────────────────── */
+  var optCounters = {};
+  for (var s = 1; s <= NUM_SLOTS; s++) { optCounters[s] = 4; }
+
+  document.querySelectorAll(".add-opt-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var q = parseInt(this.dataset.q, 10);
+      if (optCounters[q] >= 6) return;
+      optCounters[q]++;
+      var el = document.getElementById("q" + q + "_extra" + optCounters[q]);
+      if (el) el.style.display = "flex";
+      document.querySelector(".rm-opt-btn[data-q='" + q + "']").style.display = "inline";
+      if (optCounters[q] >= 6) this.style.display = "none";
+    });
+  });
+
+  document.querySelectorAll(".rm-opt-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var q = parseInt(this.dataset.q, 10);
+      if (optCounters[q] <= 4) return;
+      var el = document.getElementById("q" + q + "_extra" + optCounters[q]);
+      if (el) {
+        el.style.display = "none";
+        var input = el.querySelector("input[type=text]");
+        if (input) input.value = "";
+        var radio = el.querySelector("input[type=radio]");
+        if (radio) radio.checked = false;
+      }
+      optCounters[q]--;
+      document.querySelector(".add-opt-btn[data-q='" + q + "']").style.display = "inline";
+      if (optCounters[q] <= 4) this.style.display = "none";
+    });
+  });
+
+  /* ── Collect + validate + submit ────────────────────────────────────── */
+  var statusEl = document.getElementById("form-status");
+  var submitBtn = document.getElementById("submit-btn");
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.color = isError ? "red" : "green";
+  }
+
+  submitBtn.addEventListener("click", async function () {
+    var questions = [];
+
+    for (var slot = 1; slot <= NUM_SLOTS; slot++) {
+      var prompt = (document.getElementById("q" + slot + "_prompt").value || "").trim();
+      if (!prompt) continue;  // skip empty slots
+
+      var options = [];
+      for (var o = 1; o <= 6; o++) {
+        var optEl = document.getElementById("q" + slot + "_opt" + o);
+        if (!optEl) continue;
+        var val = (optEl.value || "").trim();
+        if (val) options.push(val);
+      }
+
+      var correctRadio = document.querySelector(
+        "input[name='q" + slot + "_correct']:checked"
+      );
+      var correctIndex = correctRadio ? parseInt(correctRadio.value, 10) : -1;
+
+      questions.push({ prompt: prompt, options: options, correct_option_index: correctIndex });
+    }
+
+    /* Client-side guard (mirrors server validation) */
+    if (questions.length < 3 || questions.length > 5) {
+      setStatus("Please fill in 3–5 questions.", true);
+      return;
+    }
+    for (var i = 0; i < questions.length; i++) {
+      if (questions[i].options.length < 2) {
+        setStatus("Question " + (i + 1) + " needs at least 2 options.", true);
+        return;
+      }
+      if (questions[i].correct_option_index < 0) {
+        setStatus("Question " + (i + 1) + ": please mark the correct answer.", true);
+        return;
+      }
+      if (questions[i].correct_option_index >= questions[i].options.length) {
+        setStatus("Question " + (i + 1) + ": correct answer is out of range.", true);
+        return;
+      }
+    }
+
+    submitBtn.disabled = true;
+    setStatus("Saving quiz…", false);
+    statusEl.style.color = "inherit";
+
+    try {
+      var res = await fetch("/api/creator/content/" + CONTENT_ID + "/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ questions: questions }),
+      });
+      var body = await res.json().catch(function () { return {}; });
+      if (res.ok) {
+        setStatus(
+          "Quiz saved (" + body.question_count + " question" +
+          (body.question_count !== 1 ? "s" : "") + ")! Redirecting…",
+          false
+        );
+        setTimeout(function () {
+          window.location.href = "/creator/content/" + CONTENT_ID;
+        }, 800);
+      } else {
+        setStatus("Error: " + (body.detail || res.statusText), true);
+        submitBtn.disabled = false;
+      }
+    } catch (_) {
+      setStatus("Network error. Please try again.", true);
+      submitBtn.disabled = false;
+    }
+  });
+}());
+</script>
+{% endblock %}
