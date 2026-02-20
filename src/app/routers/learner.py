@@ -355,6 +355,47 @@ def api_get_quiz(
     }
 
 
+@router.get("/api/progress")
+def api_progress(
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Return the learner's total XP, current streak, and last 10 attempts (newest first).
+
+    Errors:
+        401 – not authenticated
+        403 – caller is not a learner
+    """
+    profile = db.get(LearnerProfile, current_user.id)
+    streak = db.get(Streak, current_user.id)
+
+    recent = list(
+        db.execute(
+            select(QuizAttempt)
+            .where(QuizAttempt.user_id == current_user.id)
+            .order_by(QuizAttempt.completed_at.desc())
+            .limit(10)
+        ).scalars()
+    )
+
+    return {
+        "total_xp": profile.total_xp if profile else 0,
+        "current_streak_days": streak.current_streak_days if streak else 0,
+        "last_active_date_utc": streak.last_active_date_utc if streak else None,
+        "recent_attempts": [
+            {
+                "attempt_id": a.id,
+                "content_id": a.content_id,
+                "score_percent": a.score_percent,
+                "xp_awarded": a.xp_awarded,
+                "completed_at": a.completed_at.isoformat() + "Z",
+            }
+            for a in recent
+        ],
+    }
+
+
 @router.post("/api/content/{content_id}/attempt", status_code=201)
 def api_submit_attempt(
     content_id: int,
@@ -623,4 +664,42 @@ def page_attempt_result(
         request,
         "attempt_result.html",
         {"attempt": attempt, "content": content, "streak": streak},
+    )
+
+
+@router.get("/progress", response_class=HTMLResponse)
+def page_progress(
+    request: Request,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+):
+    """
+    SSR progress dashboard — total XP, streak, and recent attempts. Learner only.
+    """
+    profile = db.get(LearnerProfile, current_user.id)
+    streak = db.get(Streak, current_user.id)
+
+    recent = list(
+        db.execute(
+            select(QuizAttempt)
+            .where(QuizAttempt.user_id == current_user.id)
+            .order_by(QuizAttempt.completed_at.desc())
+            .limit(10)
+        ).scalars()
+    )
+
+    # Enrich with content titles for display
+    enriched = []
+    for a in recent:
+        content = db.get(VideoContent, a.content_id)
+        enriched.append({"attempt": a, "content": content})
+
+    return templates.TemplateResponse(
+        request,
+        "progress.html",
+        {
+            "total_xp": profile.total_xp if profile else 0,
+            "streak": streak,
+            "enriched_attempts": enriched,
+        },
     )
