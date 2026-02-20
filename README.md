@@ -8,6 +8,7 @@ A web-based language-learning platform with short videos and quizzes.
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn src.app.main:app --reload
 ```
 
