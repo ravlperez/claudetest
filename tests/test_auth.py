@@ -11,6 +11,8 @@ All tests use an isolated in-memory SQLite database (see conftest.py).
 
 import pytest
 
+from src.app.csrf import generate_csrf_token
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -138,8 +140,9 @@ def test_logout_clears_cookie(client):
     _signup(client)
     assert client.get("/api/me").status_code == 200
 
-    # POST /logout should redirect and clear the session cookie
-    r = client.post("/logout", follow_redirects=False)
+    # POST /logout requires a CSRF token (form data)
+    csrf = generate_csrf_token()
+    r = client.post("/logout", data={"csrf_token": csrf}, follow_redirects=False)
     assert r.status_code == 303
 
     # Cookie jar should no longer carry "session"

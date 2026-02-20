@@ -32,6 +32,7 @@ from src.app.auth import (
     set_session_cookie,
     verify_password,
 )
+from src.app.csrf import generate_csrf_token, require_csrf
 from src.app.database import get_db
 from src.app.models import Role, User
 
@@ -144,7 +145,9 @@ def api_me(current_user: User = Depends(get_current_user)) -> dict:
 
 @router.get("/signup", response_class=HTMLResponse)
 def page_signup(request: Request):
-    return templates.TemplateResponse(request, "signup.html", {"error": None})
+    return templates.TemplateResponse(
+        request, "signup.html", {"error": None, "csrf_token": generate_csrf_token()}
+    )
 
 
 @router.post("/signup", response_class=HTMLResponse)
@@ -154,6 +157,7 @@ def page_signup_submit(
     password: str = Form(...),
     role: str = Form(default="learner"),
     db: Session = Depends(get_db),
+    _csrf: None = Depends(require_csrf),
 ):
     email = email.strip().lower()
     error: str | None = None
@@ -185,13 +189,18 @@ def page_signup_submit(
                 error = "Email already registered."
 
     return templates.TemplateResponse(
-        request, "signup.html", {"error": error}, status_code=400
+        request,
+        "signup.html",
+        {"error": error, "csrf_token": generate_csrf_token()},
+        status_code=400,
     )
 
 
 @router.get("/login", response_class=HTMLResponse)
 def page_login(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"error": None})
+    return templates.TemplateResponse(
+        request, "login.html", {"error": None, "csrf_token": generate_csrf_token()}
+    )
 
 
 @router.post("/login", response_class=HTMLResponse)
@@ -200,6 +209,7 @@ def page_login_submit(
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
+    _csrf: None = Depends(require_csrf),
 ):
     email = email.strip().lower()
     client_ip = request.client.host if request.client else "unknown"
@@ -210,7 +220,7 @@ def page_login_submit(
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"error": "Too many login attempts. Please wait."},
+            {"error": "Too many login attempts. Please wait.", "csrf_token": generate_csrf_token()},
             status_code=429,
         )
 
@@ -219,7 +229,7 @@ def page_login_submit(
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"error": "Invalid email or password."},
+            {"error": "Invalid email or password.", "csrf_token": generate_csrf_token()},
             status_code=401,
         )
 
@@ -230,7 +240,7 @@ def page_login_submit(
 
 
 @router.post("/logout")
-def logout():
+def logout(_csrf: None = Depends(require_csrf)):
     redirect = RedirectResponse(url="/login", status_code=303)
     redirect.delete_cookie(key=SESSION_COOKIE)
     return redirect
