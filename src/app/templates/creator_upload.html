@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Upload Video – Language App{% endblock %}
+{% block content %}
+<h1>Upload a Video</h1>
+<p>Select an mp4 file (max 100 MB). The file uploads directly to storage — no server middleman.</p>
+
+<form id="upload-form">
+  <div>
+    <label for="file-input">Video file (mp4 only, ≤ 100 MB)</label><br>
+    <input type="file" id="file-input" name="file" accept="video/mp4" required>
+  </div>
+  <br>
+  <button type="submit" id="submit-btn">Upload</button>
+</form>
+
+<div id="status" style="margin-top:1rem;" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+  const form     = document.getElementById("upload-form");
+  const fileInput = document.getElementById("file-input");
+  const submitBtn = document.getElementById("submit-btn");
+  const statusEl  = document.getElementById("status");
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.color = isError ? "red" : "inherit";
+  }
+
+  form.addEventListener("submit", async function (evt) {
+    evt.preventDefault();
+
+    const file = fileInput.files[0];
+    if (!file) { setStatus("Please select a file.", true); return; }
+
+    // Client-side validation (mirrors server-side rules)
+    if (file.type !== "video/mp4") {
+      setStatus("Only mp4 files are accepted.", true);
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      setStatus("File is too large (maximum 100 MB).", true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setStatus("Requesting upload URL…");
+
+    // ── Step 1: get presigned URL from our server ───────────────────────────
+    let presignData;
+    try {
+      const res = await fetch("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ content_type: file.type, file_size: file.size }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(function () { return {}; });
+        setStatus("Error: " + (err.detail || res.statusText), true);
+        submitBtn.disabled = false;
+        return;
+      }
+      presignData = await res.json();
+    } catch (_) {
+      setStatus("Network error requesting upload URL.", true);
+      submitBtn.disabled = false;
+      return;
+    }
+
+    // ── Step 2: PUT file directly to R2 ────────────────────────────────────
+    setStatus("Uploading… (this may take a moment)");
+    try {
+      const uploadRes = await fetch(presignData.upload_url, {
+        method: "PUT",
+        headers: presignData.required_headers,
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        setStatus("Upload failed (HTTP " + uploadRes.status + "). Please try again.", true);
+        submitBtn.disabled = false;
+        return;
+      }
+    } catch (_) {
+      setStatus("Network error during upload.", true);
+      submitBtn.disabled = false;
+      return;
+    }
+
+    // ── Done ────────────────────────────────────────────────────────────────
+    submitBtn.disabled = false;
+    statusEl.textContent = "";
+
+    const successMsg = document.createElement("p");
+    successMsg.style.color = "green";
+    successMsg.textContent = "Upload complete!";
+    statusEl.appendChild(successMsg);
+
+    const label = document.createElement("p");
+    label.textContent = "Public URL (save this to use in content creation):";
+    statusEl.appendChild(label);
+
+    const urlLink = document.createElement("a");
+    urlLink.href = presignData.public_url;
+    urlLink.textContent = presignData.public_url;
+    urlLink.target = "_blank";
+    urlLink.rel = "noopener noreferrer";
+    statusEl.appendChild(urlLink);
+  });
+}());
+</script>
+{% endblock %}

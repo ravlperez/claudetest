@@ -90,6 +90,13 @@ def require_learner(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def require_creator(current_user: User = Depends(get_current_user)) -> User:
+    """Return the User if they are a creator; raise HTTP 403 otherwise."""
+    if current_user.role != Role.creator:
+        raise HTTPException(status_code=403, detail="Creator access only")
+    return current_user
+
+
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 
 _RATE_WINDOW = 60  # seconds
