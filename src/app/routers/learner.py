@@ -5,6 +5,7 @@ API (JSON):
     POST /api/learner/profile  – create or update learner profile (learner only)
     GET  /api/learner/profile  – fetch learner profile           (learner only)
     GET  /api/feed             – paginated published-content feed (learner only)
+    GET  /api/content/{id}/quiz – fetch quiz for published content (learner only)
 
 SSR:
     GET  /onboarding  – onboarding form                          (learner only)
@@ -235,6 +236,56 @@ def api_feed(
     return {
         "items": [_video_to_dict(v) for v in items],
         "next_cursor": next_cursor,
+    }
+
+
+@router.get("/api/content/{content_id}/quiz")
+def api_get_quiz(
+    content_id: int,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Return the quiz for a published VideoContent.
+
+    Errors:
+        401 – not authenticated
+        403 – caller is not a learner
+        404 – content not found, or content exists but has no quiz
+        409 – content exists but is not published (still a draft)
+
+    Note: correct_option_index is intentionally omitted from the response
+    to prevent leaking answers to the client.
+    """
+    content = db.get(VideoContent, content_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    if content.status != ContentStatus.published:
+        raise HTTPException(status_code=409, detail="Content is not published")
+
+    quiz = content.quiz
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found for this content")
+
+    return {
+        "content": {
+            "id": content.id,
+            "title": content.title,
+            "video_url": content.video_url,
+        },
+        "quiz": {
+            "id": quiz.id,
+            "questions": [
+                {
+                    "id": q.id,
+                    "type": "multiple_choice",
+                    "prompt": q.prompt,
+                    "options": json.loads(q.options_json),
+                    # correct_option_index intentionally omitted (server-side secret)
+                }
+                for q in quiz.questions
+            ],
+        },
     }
 
 

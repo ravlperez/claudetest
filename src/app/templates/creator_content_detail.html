@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ content.title }} – Language App{% endblock %}
+{% block content %}
+<p><a href="/creator">← Back to dashboard</a></p>
+
+<h1>{{ content.title }}</h1>
+
+<table style="border-collapse:collapse; margin-bottom:1.5rem;">
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Status</td>
+    <td>
+      {% if content.status == 'published' %}
+        <strong style="color:green;">Published</strong>
+        {% if content.published_at %}
+          &nbsp;<small>({{ content.published_at.strftime('%Y-%m-%d %H:%M') }} UTC)</small>
+        {% endif %}
+      {% else %}
+        <span style="color:#888;">Draft</span>
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Language</td>
+    <td>{{ content.language }}</td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Level</td>
+    <td>{{ content.level }}</td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Video URL</td>
+    <td>
+      <a href="{{ content.video_url }}" target="_blank" rel="noopener noreferrer">
+        {{ content.video_url }}
+      </a>
+    </td>
+  </tr>
+  {% if content.caption %}
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Caption</td>
+    <td>{{ content.caption }}</td>
+  </tr>
+  {% endif %}
+</table>
+
+<!-- ── Quiz status ─────────────────────────────────────────────────── -->
+<h2>Quiz</h2>
+{% if quiz %}
+  <p>
+    Quiz attached — <strong>{{ q_count }}</strong> question{{ 's' if q_count != 1 else '' }}.
+    &nbsp;<a href="/creator/content/{{ content.id }}/quiz">Edit quiz</a>
+  </p>
+  {% if q_count < 3 %}
+    <p style="color:orange;">⚠ Minimum 3 questions required before publishing.</p>
+  {% elif q_count > 5 %}
+    <p style="color:orange;">⚠ Maximum 5 questions allowed.</p>
+  {% endif %}
+{% else %}
+  <p id="quiz-missing">No quiz yet. <a href="/creator/content/{{ content.id }}/quiz">Add quiz</a></p>
+{% endif %}
+
+<!-- ── Publish section ─────────────────────────────────────────────── -->
+{% if content.status == 'draft' %}
+<h2>Publish</h2>
+{% if can_publish %}
+  <p>Ready to publish! The quiz has {{ q_count }} question{{ 's' if q_count != 1 else '' }}.</p>
+  <button id="publish-btn">Publish Now</button>
+  <span id="publish-status" style="margin-left:1rem;"></span>
+{% else %}
+  <p style="color:#888;">
+    Cannot publish yet —
+    {% if not quiz %}
+      a quiz with 3–5 questions is required.
+    {% elif q_count < 3 %}
+      the quiz needs at least 3 questions (currently {{ q_count }}).
+    {% elif q_count > 5 %}
+      the quiz has too many questions (maximum 5, currently {{ q_count }}).
+    {% else %}
+      unknown reason.
+    {% endif %}
+  </p>
+{% endif %}
+{% endif %}
+
+{% if can_publish %}
+<script>
+(function () {
+  "use strict";
+  const btn    = document.getElementById("publish-btn");
+  const status = document.getElementById("publish-status");
+  const contentId = {{ content.id }};
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    status.textContent = "Publishing…";
+    try {
+      const res = await fetch("/api/creator/content/" + contentId + "/publish", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const body = await res.json().catch(function () { return {}; });
+      if (res.ok) {
+        status.style.color = "green";
+        status.textContent = "Published! Reloading…";
+        setTimeout(function () { location.reload(); }, 800);
+      } else {
+        status.style.color = "red";
+        status.textContent = "Error: " + (body.detail || res.statusText);
+        btn.disabled = false;
+      }
+    } catch (_) {
+      status.style.color = "red";
+      status.textContent = "Network error. Please try again.";
+      btn.disabled = false;
+    }
+  });
+}());
+</script>
+{% endif %}
+{% endblock %}
