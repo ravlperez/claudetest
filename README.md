@@ -10,6 +10,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head          # create/migrate the database
 python -m src.app.scripts.seed  # (optional) load demo data
+alembic upgrade head
 uvicorn src.app.main:app --reload
 ```
 
