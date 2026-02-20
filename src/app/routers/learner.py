@@ -23,6 +23,7 @@ Pagination strategy (GET /api/feed):
 
 import base64
 import json
+import logging
 import pathlib
 from datetime import date, datetime, timedelta, timezone
 
@@ -54,6 +55,7 @@ _BASE_DIR = pathlib.Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _VALID_LANGUAGES = ("en", "es", "fr")
 _VALID_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
@@ -507,6 +509,10 @@ def api_submit_attempt(
     db.refresh(attempt)
     db.refresh(streak)
 
+    logger.info(
+        "learner_attempt_submitted user_id=%d content_id=%d score=%d xp_awarded=%d",
+        current_user.id, content_id, score_percent, xp_awarded,
+    )
     return {
         "attempt_id": attempt.id,
         "score_percent": score_percent,

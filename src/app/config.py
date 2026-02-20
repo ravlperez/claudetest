@@ -1,5 +1,9 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Runtime environment: "development" | "production"
 APP_ENV: str = os.getenv("APP_ENV", "development")
 

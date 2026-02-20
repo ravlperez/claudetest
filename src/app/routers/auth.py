@@ -14,6 +14,7 @@ SSR (form + redirect):
     POST /logout   – clear session cookie, redirect to /login
 """
 
+import logging
 import pathlib
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
@@ -40,6 +41,7 @@ _BASE_DIR = pathlib.Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # ── Pydantic request/response schemas ─────────────────────────────────────────
@@ -122,8 +124,13 @@ def api_login(
 
     user = db.query(User).filter(User.email == body.email).first()
     if not user or not verify_password(body.password, user.password_hash):
+        logger.warning("auth_login_failure email=%s ip=%s", body.email, client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    logger.info(
+        "auth_login_success user_id=%d email=%s role=%s",
+        user.id, user.email, user.role.value,
+    )
     token = create_session_token(user.id, user.role.value)
     set_session_cookie(response, token)
 
