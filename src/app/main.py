@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from src.app.database import engine
+from src.app.routers import auth as auth_router
 
 BASE_DIR = pathlib.Path(__file__).parent
 
@@ -21,6 +22,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Language App", lifespan=lifespan)
 
+app.include_router(auth_router.router)
+
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
@@ -31,4 +34,4 @@ def health():
 
 @app.get("/", response_class=HTMLResponse)
 def landing(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")

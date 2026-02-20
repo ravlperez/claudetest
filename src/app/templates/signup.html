@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Sign Up – Language App{% endblock %}
+{% block content %}
+<h1>Create an account</h1>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/signup">
+  <div>
+    <label for="email">Email</label><br>
+    <input type="email" id="email" name="email" required autocomplete="email">
+  </div>
+  <div>
+    <label for="password">Password (min 8 characters)</label><br>
+    <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+  </div>
+  <div>
+    <label for="role">I want to</label><br>
+    <select id="role" name="role">
+      <option value="learner">Learn languages</option>
+      <option value="creator">Create content</option>
+    </select>
+  </div>
+  <br>
+  <button type="submit">Sign Up</button>
+</form>
+
+<p>Already have an account? <a href="/login">Log in</a></p>
+{% endblock %}
