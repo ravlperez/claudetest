@@ -17,10 +17,17 @@
       <source src="{{ video.video_url }}" type="video/mp4">
       Your browser does not support the video element.
     </video>
-    <small style="color:#888;">
-      {{ video.language.value | upper }} · {{ video.level.value }}
-      {% if video.published_at %}· {{ video.published_at.strftime('%Y-%m-%d') }}{% endif %}
-    </small>
+    <p style="margin-top:0.6rem;">
+      <small style="color:#888;">
+        {{ video.language.value | upper }} · {{ video.level.value }}
+        {% if video.published_at %}· {{ video.published_at.strftime('%Y-%m-%d') }}{% endif %}
+      </small>
+      &nbsp;&nbsp;
+      <a href="/content/{{ video.id }}/quiz"
+         style="padding:0.3rem 0.8rem; background:#007bff; color:#fff; text-decoration:none; border-radius:4px; font-size:0.9rem;">
+        Take quiz →
+      </a>
+    </p>
   </div>
   {% else %}
   <p id="empty-state">No videos available yet for your language and level. Check back soon!</p>
@@ -96,10 +103,19 @@
       video.appendChild(document.createTextNode("Your browser does not support the video element."));
       card.appendChild(video);
 
-      const meta = document.createElement("small");
-      meta.style.color = "#888";
+      const meta = document.createElement("p");
+      meta.style.marginTop = "0.6rem";
+      const small = document.createElement("small");
+      small.style.color = "#888";
       const pubDate = v.published_at ? v.published_at.slice(0, 10) : "";
-      meta.textContent = v.language.toUpperCase() + " · " + v.level + (pubDate ? " · " + pubDate : "");
+      small.textContent = v.language.toUpperCase() + " · " + v.level + (pubDate ? " · " + pubDate : "");
+      meta.appendChild(small);
+      meta.insertAdjacentHTML("beforeend", "&nbsp;&nbsp;");
+      const quizLink = document.createElement("a");
+      quizLink.href = "/content/" + v.id + "/quiz";
+      quizLink.textContent = "Take quiz →";
+      quizLink.style.cssText = "padding:0.3rem 0.8rem;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;font-size:0.9rem;";
+      meta.appendChild(quizLink);
       card.appendChild(meta);
 
       container.appendChild(card);
