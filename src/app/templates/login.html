@@ -8,6 +8,7 @@
 {% endif %}
 
 <form method="post" action="/login">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <div>
     <label for="email">Email</label><br>
     <input type="email" id="email" name="email" required autocomplete="email">
