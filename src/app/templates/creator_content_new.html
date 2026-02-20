@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}New Content – Language App{% endblock %}
+{% block content %}
+<h1>Create New Content</h1>
+<p>Fill in the details below. Upload your video first to get the public URL.</p>
+<p><a href="/creator/upload">→ Upload a video first</a></p>
+
+<form method="post" action="/creator/content">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div style="margin-bottom:1rem;">
+    <label for="title"><strong>Title</strong> (required)</label><br>
+    <input type="text" id="title" name="title" maxlength="255" required
+           style="width:100%; max-width:480px; padding:0.3rem;">
+  </div>
+
+  <div style="margin-bottom:1rem;">
+    <label for="language"><strong>Language</strong></label><br>
+    <select id="language" name="language" required style="padding:0.3rem;">
+      {% for lang in languages %}
+      <option value="{{ lang }}">{{ lang }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div style="margin-bottom:1rem;">
+    <label for="level"><strong>CEFR Level</strong></label><br>
+    <select id="level" name="level" required style="padding:0.3rem;">
+      {% for lvl in levels %}
+      <option value="{{ lvl }}">{{ lvl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div style="margin-bottom:1rem;">
+    <label for="video_url"><strong>Video URL</strong> (paste the public URL from the upload page)</label><br>
+    <input type="url" id="video_url" name="video_url" required
+           placeholder="https://pub-xxx.r2.dev/videos/…"
+           style="width:100%; max-width:480px; padding:0.3rem;">
+  </div>
+
+  <div style="margin-bottom:1rem;">
+    <label for="caption">Caption (optional)</label><br>
+    <textarea id="caption" name="caption" rows="3"
+              style="width:100%; max-width:480px; padding:0.3rem;"></textarea>
+  </div>
+
+  <button type="submit">Save Draft</button>
+  &nbsp;<a href="/creator">Cancel</a>
+</form>
+{% endblock %}
