@@ -1,8 +1,9 @@
+import logging
 import pathlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from src.app.database import engine
@@ -22,7 +23,20 @@ async def lifespan(app: FastAPI):
     yield
 
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Language App", lifespan=lifespan)
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all handler: return clean JSON instead of leaking stack traces."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": "internal_error", "message": "An internal server error occurred"}},
+    )
+
 
 app.include_router(auth_router.router)
 app.include_router(creator_router.router)

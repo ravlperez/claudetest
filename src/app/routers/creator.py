@@ -31,6 +31,7 @@ Publish rules (POST /api/creator/content/{id}/publish):
 """
 
 import json
+import logging
 import pathlib
 import uuid
 from datetime import datetime, timezone
@@ -60,6 +61,7 @@ _BASE_DIR = pathlib.Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -340,6 +342,10 @@ def api_publish_content(
     db.commit()
     db.refresh(content)
 
+    logger.info(
+        "creator_publish content_id=%d creator_id=%d",
+        content.id, current_user.id,
+    )
     return {
         "id": content.id,
         "status": content.status,

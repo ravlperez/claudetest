@@ -23,8 +23,9 @@ Pagination strategy (GET /api/feed):
 
 import base64
 import json
+import logging
 import pathlib
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -41,19 +42,63 @@ from src.app.models import (
     ContentStatus,
     Language,
     LearnerProfile,
+    Quiz,
+    QuizAttempt,
+    Streak,
     User,
     VideoContent,
+    XPEvent,
+    XPReason,
 )
 
 _BASE_DIR = pathlib.Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _VALID_LANGUAGES = ("en", "es", "fr")
 _VALID_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
 _FEED_DEFAULT_LIMIT = 10
 _FEED_MAX_LIMIT = 50
+
+_XP_BASE = 30
+_XP_BONUS_80 = 10
+_XP_BONUS_100 = 20
+
+
+# ── Attempt helpers (overridable for tests) ───────────────────────────────────
+
+
+def _current_utc_date() -> str:
+    """Return today's UTC date as YYYY-MM-DD. Monkeypatchable in tests."""
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def _calc_xp(score_percent: int) -> int:
+    """Return XP amount for a given score percent per SPEC 6.2 rules."""
+    xp = _XP_BASE
+    if score_percent >= 80:
+        xp += _XP_BONUS_80
+    if score_percent == 100:
+        xp += _XP_BONUS_100
+    return xp
+
+
+def _update_streak_inplace(streak: Streak, today_str: str) -> None:
+    """Update streak row in place given today's UTC date string (YYYY-MM-DD)."""
+    yesterday_str = (date.fromisoformat(today_str) - timedelta(days=1)).isoformat()
+    if streak.last_active_date_utc == today_str:
+        # Already active today — no change
+        pass
+    elif streak.last_active_date_utc == yesterday_str:
+        # Consecutive day — extend streak
+        streak.current_streak_days += 1
+        streak.last_active_date_utc = today_str
+    else:
+        # First activity ever, or missed one or more days — reset to 1
+        streak.current_streak_days = 1
+        streak.last_active_date_utc = today_str
 
 
 # ── Cursor helpers ────────────────────────────────────────────────────────────
@@ -156,6 +201,29 @@ class ProfileRequest(BaseModel):
     def _level_valid(cls, v: str) -> str:
         if v not in _VALID_LEVELS:
             raise ValueError(f"level must be one of: {', '.join(_VALID_LEVELS)}")
+        return v
+
+
+class AnswerIn(BaseModel):
+    question_id: int
+    selected_index: int
+
+    @field_validator("selected_index")
+    @classmethod
+    def _index_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("selected_index must be >= 0")
+        return v
+
+
+class AttemptRequest(BaseModel):
+    answers: list[AnswerIn]
+
+    @field_validator("answers")
+    @classmethod
+    def _answers_not_empty(cls, v: list) -> list:
+        if not v:
+            raise ValueError("answers must not be empty")
         return v
 
 
@@ -289,6 +357,175 @@ def api_get_quiz(
     }
 
 
+@router.get("/api/progress")
+def api_progress(
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Return the learner's total XP, current streak, and last 10 attempts (newest first).
+
+    Errors:
+        401 – not authenticated
+        403 – caller is not a learner
+    """
+    profile = db.get(LearnerProfile, current_user.id)
+    streak = db.get(Streak, current_user.id)
+
+    recent = list(
+        db.execute(
+            select(QuizAttempt)
+            .where(QuizAttempt.user_id == current_user.id)
+            .order_by(QuizAttempt.completed_at.desc())
+            .limit(10)
+        ).scalars()
+    )
+
+    return {
+        "total_xp": profile.total_xp if profile else 0,
+        "current_streak_days": streak.current_streak_days if streak else 0,
+        "last_active_date_utc": streak.last_active_date_utc if streak else None,
+        "recent_attempts": [
+            {
+                "attempt_id": a.id,
+                "content_id": a.content_id,
+                "score_percent": a.score_percent,
+                "xp_awarded": a.xp_awarded,
+                "completed_at": a.completed_at.isoformat() + "Z",
+            }
+            for a in recent
+        ],
+    }
+
+
+@router.post("/api/content/{content_id}/attempt", status_code=201)
+def api_submit_attempt(
+    content_id: int,
+    body: AttemptRequest,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Submit quiz answers for published content. Scores the attempt, awards XP
+    (at most once per content per UTC day), and updates the learner's streak.
+
+    Errors:
+        401 – not authenticated
+        403 – caller is not a learner
+        404 – content or quiz not found
+        409 – content is a draft
+        422 – invalid answers (wrong count, unknown question_id, out-of-range index)
+    """
+    content = db.get(VideoContent, content_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    if content.status != ContentStatus.published:
+        raise HTTPException(status_code=409, detail="Content is not published")
+
+    quiz = content.quiz
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+
+    questions = quiz.questions
+    question_map = {q.id: q for q in questions}
+
+    # Validate answer count and question IDs
+    if len(body.answers) != len(questions):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Expected {len(questions)} answers, got {len(body.answers)}",
+        )
+    for ans in body.answers:
+        if ans.question_id not in question_map:
+            raise HTTPException(
+                status_code=422, detail=f"Unknown question_id: {ans.question_id}"
+            )
+        options = json.loads(question_map[ans.question_id].options_json)
+        if ans.selected_index >= len(options):
+            raise HTTPException(
+                status_code=422,
+                detail=f"selected_index {ans.selected_index} out of range for question {ans.question_id}",
+            )
+
+    # Score
+    correct_count = sum(
+        1
+        for ans in body.answers
+        if question_map[ans.question_id].correct_option_index == ans.selected_index
+    )
+    total_questions = len(questions)
+    score_percent = int((correct_count / total_questions) * 100)
+
+    # XP: awarded at most once per content per UTC day
+    today_str = _current_utc_date()
+    already_earned = db.execute(
+        select(QuizAttempt).where(
+            QuizAttempt.user_id == current_user.id,
+            QuizAttempt.content_id == content_id,
+            QuizAttempt.completed_date_utc == today_str,
+            QuizAttempt.xp_awarded > 0,
+        )
+    ).scalars().first()
+    xp_awarded = 0 if already_earned else _calc_xp(score_percent)
+
+    # Create attempt record
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    attempt = QuizAttempt(
+        user_id=current_user.id,
+        content_id=content_id,
+        quiz_id=quiz.id,
+        score_percent=score_percent,
+        correct_count=correct_count,
+        total_questions=total_questions,
+        xp_awarded=xp_awarded,
+        completed_at=now,
+        completed_date_utc=today_str,
+    )
+    db.add(attempt)
+
+    # Update total_xp and create XPEvent when XP is awarded
+    if xp_awarded > 0:
+        profile = db.get(LearnerProfile, current_user.id)
+        if profile:
+            profile.total_xp += xp_awarded
+        db.add(
+            XPEvent(
+                user_id=current_user.id,
+                content_id=content_id,
+                reason=XPReason.quiz_completed,
+                xp_amount=xp_awarded,
+                created_date_utc=today_str,
+            )
+        )
+
+    # Update streak
+    streak = db.get(Streak, current_user.id)
+    if not streak:
+        streak = Streak(user_id=current_user.id)
+        db.add(streak)
+    _update_streak_inplace(streak, today_str)
+
+    db.commit()
+    db.refresh(attempt)
+    db.refresh(streak)
+
+    logger.info(
+        "learner_attempt_submitted user_id=%d content_id=%d score=%d xp_awarded=%d",
+        current_user.id, content_id, score_percent, xp_awarded,
+    )
+    return {
+        "attempt_id": attempt.id,
+        "score_percent": score_percent,
+        "correct_count": correct_count,
+        "total_questions": total_questions,
+        "xp_awarded": xp_awarded,
+        "streak": {
+            "current_streak_days": streak.current_streak_days,
+            "last_active_date_utc": streak.last_active_date_utc,
+        },
+    }
+
+
 # ── SSR pages ──────────────────────────────────────────────────────────────────
 
 
@@ -369,5 +606,106 @@ def page_feed(
             "profile": profile,
             "items": items,
             "next_cursor": next_cursor,
+        },
+    )
+
+
+@router.get("/content/{content_id}/quiz", response_class=HTMLResponse)
+def page_quiz(
+    content_id: int,
+    request: Request,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+):
+    """
+    SSR quiz page — shows the video and quiz form for a published content item.
+    Learner only; submits answers via JS to POST /api/content/{id}/attempt.
+    """
+    content = db.get(VideoContent, content_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    if content.status != ContentStatus.published:
+        raise HTTPException(status_code=409, detail="Content is not published")
+
+    quiz = content.quiz
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+
+    questions_data = [
+        {
+            "id": q.id,
+            "prompt": q.prompt,
+            "options": json.loads(q.options_json),
+        }
+        for q in quiz.questions
+    ]
+    return templates.TemplateResponse(
+        request,
+        "quiz_page.html",
+        {"content": content, "quiz": quiz, "questions": questions_data},
+    )
+
+
+@router.get("/attempts/{attempt_id}", response_class=HTMLResponse)
+def page_attempt_result(
+    attempt_id: int,
+    request: Request,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+):
+    """
+    SSR results page showing score, XP awarded, and streak for an attempt.
+    Only the attempt owner may view it.
+    """
+    attempt = db.get(QuizAttempt, attempt_id)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    if attempt.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your attempt")
+
+    content = db.get(VideoContent, attempt.content_id)
+    streak = db.get(Streak, current_user.id)
+
+    return templates.TemplateResponse(
+        request,
+        "attempt_result.html",
+        {"attempt": attempt, "content": content, "streak": streak},
+    )
+
+
+@router.get("/progress", response_class=HTMLResponse)
+def page_progress(
+    request: Request,
+    current_user: User = Depends(require_learner),
+    db: Session = Depends(get_db),
+):
+    """
+    SSR progress dashboard — total XP, streak, and recent attempts. Learner only.
+    """
+    profile = db.get(LearnerProfile, current_user.id)
+    streak = db.get(Streak, current_user.id)
+
+    recent = list(
+        db.execute(
+            select(QuizAttempt)
+            .where(QuizAttempt.user_id == current_user.id)
+            .order_by(QuizAttempt.completed_at.desc())
+            .limit(10)
+        ).scalars()
+    )
+
+    # Enrich with content titles for display
+    enriched = []
+    for a in recent:
+        content = db.get(VideoContent, a.content_id)
+        enriched.append({"attempt": a, "content": content})
+
+    return templates.TemplateResponse(
+        request,
+        "progress.html",
+        {
+            "total_xp": profile.total_xp if profile else 0,
+            "streak": streak,
+            "enriched_attempts": enriched,
         },
     )

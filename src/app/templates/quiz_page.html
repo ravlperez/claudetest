@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ content.title }} – Quiz – Language App{% endblock %}
+{% block content %}
+<p><a href="/feed">← Back to feed</a></p>
+
+<h1>{{ content.title }}</h1>
+
+<video controls style="width:100%; max-width:640px; display:block; margin-bottom:1.5rem;">
+  <source src="{{ content.video_url }}" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<h2>Quiz</h2>
+<p id="quiz-error" style="color:red; display:none;"></p>
+
+<form id="quiz-form">
+{% for q in questions %}
+  <fieldset style="margin-bottom:1.2rem; border:1px solid #ccc; padding:0.8rem 1rem; border-radius:4px;">
+    <legend style="font-weight:bold;">{{ loop.index }}. {{ q.prompt }}</legend>
+    {% for opt in q.options %}
+    <label style="display:block; margin:0.3rem 0; cursor:pointer;">
+      <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" required>
+      {{ opt }}
+    </label>
+    {% endfor %}
+  </fieldset>
+{% endfor %}
+  <button type="submit" style="padding:0.6rem 1.4rem; font-size:1rem; cursor:pointer;">
+    Submit answers
+  </button>
+</form>
+
+<script>
+(function () {
+  var CONTENT_ID = {{ content.id }};
+  var QUESTION_IDS = {{ questions | map(attribute='id') | list | tojson }};
+
+  document.getElementById('quiz-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var errEl = document.getElementById('quiz-error');
+    errEl.style.display = 'none';
+
+    var answers = [];
+    for (var i = 0; i < QUESTION_IDS.length; i++) {
+      var qid = QUESTION_IDS[i];
+      var radios = document.querySelectorAll('input[name="q_' + qid + '"]');
+      var selected = null;
+      for (var j = 0; j < radios.length; j++) {
+        if (radios[j].checked) { selected = parseInt(radios[j].value, 10); break; }
+      }
+      if (selected === null) {
+        errEl.textContent = 'Please answer all questions before submitting.';
+        errEl.style.display = 'block';
+        return;
+      }
+      answers.push({ question_id: qid, selected_index: selected });
+    }
+
+    fetch('/api/content/' + CONTENT_ID + '/attempt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: answers })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (res) {
+      if (res.ok) {
+        window.location.href = '/attempts/' + res.data.attempt_id;
+      } else {
+        errEl.textContent = res.data.detail || 'Submission failed. Please try again.';
+        errEl.style.display = 'block';
+      }
+    })
+    .catch(function () {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = 'block';
+    });
+  });
+}());
+</script>
+{% endblock %}
