@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Feed – Language App{% endblock %}
+{% block content %}
+<h1>Your Feed</h1>
+<p>
+  Learning <strong>{{ profile.target_language.value | upper }}</strong>
+  at level <strong>{{ profile.level.value }}</strong>.
+</p>
+<p>No videos yet — check back soon!</p>
+<p><a href="/onboarding">Update profile</a></p>
+{% endblock %}
