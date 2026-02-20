@@ -1,5 +1,11 @@
 import os
 
+from dotenv import load_dotenv
+
+# Load .env for local development (no-op if the file doesn't exist or in prod
+# where vars are injected directly into the environment by the platform).
+load_dotenv()
+
 # Runtime environment: "development" | "production"
 APP_ENV: str = os.getenv("APP_ENV", "development")
 
