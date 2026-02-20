@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Quiz Results – Language App{% endblock %}
+{% block content %}
+<p><a href="/feed">← Back to feed</a></p>
+
+<h1>Quiz Results</h1>
+
+{% if content %}
+<p style="color:#555;">Content: <strong>{{ content.title }}</strong></p>
+{% endif %}
+
+<table style="border-collapse:collapse; margin-bottom:1.5rem;">
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Score</td>
+    <td>
+      <strong>{{ attempt.score_percent }}%</strong>
+      &nbsp;<small>({{ attempt.correct_count }} / {{ attempt.total_questions }} correct)</small>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">XP awarded</td>
+    <td>
+      {% if attempt.xp_awarded > 0 %}
+        <strong style="color:green;">+{{ attempt.xp_awarded }} XP</strong>
+      {% else %}
+        <span style="color:#888;">0 XP (already earned today)</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% if streak %}
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Streak</td>
+    <td>
+      <strong>{{ streak.current_streak_days }}</strong> day{{ 's' if streak.current_streak_days != 1 else '' }}
+      &nbsp;<small>(last active: {{ streak.last_active_date_utc }})</small>
+    </td>
+  </tr>
+  {% endif %}
+  <tr>
+    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Completed</td>
+    <td>{{ attempt.completed_at.strftime('%Y-%m-%d %H:%M') }} UTC</td>
+  </tr>
+</table>
+
+<div style="display:flex; gap:1rem; flex-wrap:wrap;">
+  {% if content %}
+  <a href="/content/{{ content.id }}/quiz"
+     style="padding:0.5rem 1rem; background:#eee; text-decoration:none; border-radius:4px;">
+    Retake quiz
+  </a>
+  {% endif %}
+  <a href="/progress"
+     style="padding:0.5rem 1rem; background:#eee; text-decoration:none; border-radius:4px;">
+    View progress
+  </a>
+  <a href="/feed"
+     style="padding:0.5rem 1rem; background:#eee; text-decoration:none; border-radius:4px;">
+    Back to feed
+  </a>
+</div>
+{% endblock %}
