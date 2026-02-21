@@ -1,12 +1,391 @@
-{% extends "base.html" %}
+{% extends "base_landing.html" %}
 
-{% block title %}Language App — Learn with short videos{% endblock %}
+{% block title %}Language App — Learn a language in minutes a day{% endblock %}
 
-{% block content %}
-<h1>Language App</h1>
-<p>Learn English, Spanish, or French with short videos and quizzes.</p>
-<nav>
-    <a href="/signup">Sign up</a>
-    <a href="/login">Log in</a>
-</nav>
+{% block body %}
+
+<!-- ═══ NAVBAR ═══════════════════════════════════════════════════ -->
+<header class="navbar">
+  <div class="container navbar__inner">
+    <a href="/" class="navbar__logo">Language<span>App</span></a>
+
+    <nav class="navbar__links" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#creators">Creators</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <a href="/signup" class="navbar__cta">Start free</a>
+    <button class="navbar__hamburger" aria-label="Open menu">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+        <line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="14" x2="17" y2="14"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ═══ HERO ══════════════════════════════════════════════════════ -->
+<section class="hero section">
+  <div class="container">
+    <div class="hero__badge">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="4"/></svg>
+      Now in open beta
+    </div>
+
+    <h1 class="hero__h1">Learn a language in<br><em>minutes a day.</em></h1>
+
+    <p class="hero__sub">
+      Scroll short lessons. Answer quick quizzes. Earn XP and keep your streak.
+    </p>
+
+    <div class="hero__actions">
+      <a href="/signup" class="btn-primary">Get started now <span class="arrow">→</span></a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+
+    <div class="hero__proof" aria-label="4.9 star rating">
+      <div class="hero__stars" aria-hidden="true">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+      </div>
+      <strong>4.9</strong>
+      <span>from early learners</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DASHBOARD PREVIEW ═════════════════════════════════════════ -->
+<section class="preview section">
+  <div class="container">
+    <p class="preview__label">App preview</p>
+
+    <div class="preview__card" role="img" aria-label="Language App dashboard preview">
+
+      <!-- Sidebar -->
+      <aside class="preview__sidebar" aria-hidden="true">
+        <div class="preview__sidebar-logo">L</div>
+        <div class="sidebar-item active" title="Feed">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        </div>
+        <div class="sidebar-item" title="Quizzes">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="sidebar-item" title="Progress">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="sidebar-item" title="Profile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+      </aside>
+
+      <!-- Center panel -->
+      <main class="preview__main" aria-hidden="true">
+        <div class="preview__main-header">
+          <h3>Today's Progress</h3>
+          <span class="chip chip--accent">Day 14 🔥</span>
+        </div>
+
+        <div class="xp-card">
+          <div class="xp-card__label">XP Earned Today</div>
+          <div class="xp-card__value">340 XP</div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;">
+            <span style="font-size:0.75rem;color:var(--text-subtle)">0 XP</span>
+            <span style="font-size:0.75rem;color:var(--text-muted)">Goal: 500 XP</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:0.8125rem;font-weight:600;color:var(--text-muted)">Weekly Activity</span>
+            <span class="chip chip--muted">This week</span>
+          </div>
+          <div class="mini-chart" aria-hidden="true">
+            <div class="mini-chart__bar" style="height:40%"></div>
+            <div class="mini-chart__bar" style="height:65%"></div>
+            <div class="mini-chart__bar" style="height:50%"></div>
+            <div class="mini-chart__bar" style="height:80%"></div>
+            <div class="mini-chart__bar" style="height:55%"></div>
+            <div class="mini-chart__bar active" style="height:90%"></div>
+            <div class="mini-chart__bar" style="height:30%;opacity:0.4"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="margin-bottom:10px;font-size:0.8125rem;font-weight:600;color:var(--text-muted)">Recent Quizzes</div>
+          <div class="quiz-list">
+            <div class="quiz-row">
+              <span class="quiz-row__name">Spanish Basics #3</span>
+              <span class="quiz-row__score">8/10</span>
+              <span class="quiz-row__badge">+40 XP</span>
+            </div>
+            <div class="quiz-row">
+              <span class="quiz-row__name">French Verbs #1</span>
+              <span class="quiz-row__score">10/10</span>
+              <span class="quiz-row__badge">+50 XP</span>
+            </div>
+            <div class="quiz-row">
+              <span class="quiz-row__name">English Idioms #2</span>
+              <span class="quiz-row__score">7/10</span>
+              <span class="quiz-row__badge">+35 XP</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right stats -->
+      <aside class="preview__stats" aria-hidden="true">
+        <div class="stat-card stat-card--accent">
+          <div class="stat-card__label">🔥 Streak</div>
+          <div class="stat-card__val">14 days</div>
+          <div class="stat-card__sub">Keep it going!</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">⚡ Level</div>
+          <div class="stat-card__val">Lv 7</div>
+          <div class="stat-card__sub">Intermediate</div>
+          <div class="stat-progress" aria-hidden="true">
+            <div class="stat-progress-track">
+              <div class="stat-progress-fill" style="width:72%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">🎯 Next Goal</div>
+          <div class="stat-card__val">500 XP</div>
+          <div class="stat-card__sub">160 XP to go</div>
+          <div class="stat-progress" aria-hidden="true">
+            <div class="stat-progress-track">
+              <div class="stat-progress-fill" style="width:68%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">📚 Lessons</div>
+          <div class="stat-card__val">42</div>
+          <div class="stat-card__sub">Completed total</div>
+        </div>
+      </aside>
+
+    </div><!-- /preview__card -->
+  </div>
+</section>
+
+<div class="divider-glow"></div>
+
+<!-- ═══ MANIFESTO ════════════════════════════════════════════════ -->
+<section class="manifesto section">
+  <div class="container">
+    <p class="manifesto__text">
+      Fluency isn't a talent. It's a<em> daily habit</em> —<br>
+      built one short video, one quiz, one streak at a time.
+    </p>
+  </div>
+</section>
+
+<div class="divider-glow"></div>
+
+<!-- ═══ FEATURES ═════════════════════════════════════════════════ -->
+<section class="features section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-header__eyebrow">Features</div>
+      <h2 class="section-header__h2">Everything you need to actually stick with it</h2>
+      <p class="section-header__sub">We stripped away everything that slows learners down and kept what works.</p>
+    </div>
+
+    <div class="features__grid">
+      <div class="feature-card">
+        <div class="feature-card__icon">▶</div>
+        <div class="feature-card__title">Reels-style video feed</div>
+        <p class="feature-card__desc">Scroll through bite-sized language lessons — each under 90 seconds. No lectures, no boredom.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">✎</div>
+        <div class="feature-card__title">Quiz after every video</div>
+        <p class="feature-card__desc">Instantly test what you just learned. Spaced repetition baked right in, no setup needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">⚡</div>
+        <div class="feature-card__title">XP &amp; level system</div>
+        <p class="feature-card__desc">Earn experience points for every quiz you pass. Level up and track your progress visually.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🔥</div>
+        <div class="feature-card__title">Daily streaks</div>
+        <p class="feature-card__desc">Build momentum with streak tracking. Miss a day and it resets — simple motivation that works.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🌍</div>
+        <div class="feature-card__title">Multiple languages</div>
+        <p class="feature-card__desc">English, Spanish, French — with more languages added as the creator community grows.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">✦</div>
+        <div class="feature-card__title">Creator-made content</div>
+        <p class="feature-card__desc">Real humans teaching real language. Upload your lessons, build an audience, share expertise.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ══════════════════════════════════════════════ -->
+<section class="how section" id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-header__eyebrow">How it works</div>
+      <h2 class="section-header__h2">Three steps to fluency</h2>
+    </div>
+
+    <div class="how__steps">
+      <div class="step">
+        <div class="step__num">1</div>
+        <div class="step__title">Sign up &amp; pick a language</div>
+        <p class="step__desc">Choose what you want to learn. No placement test, no questionnaire. Just pick and go.</p>
+      </div>
+      <div class="step">
+        <div class="step__num">2</div>
+        <div class="step__title">Watch, scroll &amp; quiz</div>
+        <p class="step__desc">Open the feed, watch a lesson, answer the quiz. Each session can be as short as 5 minutes.</p>
+      </div>
+      <div class="step">
+        <div class="step__num">3</div>
+        <div class="step__title">Earn XP &amp; keep your streak</div>
+        <p class="step__desc">Watch your level rise and your streak grow. Come back tomorrow and do it again.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CREATORS ══════════════════════════════════════════════════ -->
+<section class="creators section" id="creators">
+  <div class="container">
+    <div class="creators__inner">
+      <div class="section-header__eyebrow" style="margin-bottom:12px;">For creators</div>
+      <h2 class="creators__h2">Teach a language.<br>Build an audience.</h2>
+      <p class="creators__sub">
+        Record short lessons on your phone. Upload them in seconds. Your content teaches thousands of learners every day.
+      </p>
+      <a href="/signup" class="btn-primary">Become a creator <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══════════════════════════════════════════════════ -->
+<section class="pricing section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-header__eyebrow">Pricing</div>
+      <h2 class="section-header__h2">Simple, honest pricing</h2>
+      <p class="section-header__sub">Start free. Upgrade when you're ready to go deeper.</p>
+    </div>
+
+    <div class="pricing__grid">
+      <div class="pricing-card">
+        <div class="pricing-card__tier">Free</div>
+        <div class="pricing-card__price">
+          <strong>$0</strong><span> / forever</span>
+        </div>
+        <ul class="pricing-card__features">
+          <li class="pricing-feat">Unlimited video feed</li>
+          <li class="pricing-feat">10 quizzes per day</li>
+          <li class="pricing-feat">XP &amp; streak tracking</li>
+          <li class="pricing-feat">1 active language</li>
+        </ul>
+        <div class="pricing-card__cta">
+          <a href="/signup" class="btn-ghost" style="width:100%;justify-content:center;">Get started free</a>
+        </div>
+      </div>
+
+      <div class="pricing-card pricing-card--featured">
+        <div class="pricing-card__tier">Pro</div>
+        <div class="pricing-card__price">
+          <strong>$8</strong><span> / month</span>
+        </div>
+        <ul class="pricing-card__features">
+          <li class="pricing-feat">Everything in Free</li>
+          <li class="pricing-feat">Unlimited quizzes</li>
+          <li class="pricing-feat">All languages unlocked</li>
+          <li class="pricing-feat">Offline downloads</li>
+          <li class="pricing-feat">Priority support</li>
+        </ul>
+        <div class="pricing-card__cta">
+          <a href="/signup" class="btn-primary" style="width:100%;justify-content:center;">Start Pro free <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FAQ ════════════════════════════════════════════════════════ -->
+<section class="faq section" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-header__eyebrow">FAQ</div>
+      <h2 class="section-header__h2">Questions? We've got answers.</h2>
+    </div>
+
+    <div class="faq__list">
+      <details class="faq-item">
+        <summary class="faq-item__q">
+          How long are the video lessons?
+          <svg class="faq-item__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,5 7,10 12,5"/></svg>
+        </summary>
+        <p class="faq-item__a">Most lessons are between 30 seconds and 90 seconds. We believe in focused, high-quality micro-content over long lectures.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-item__q">
+          Which languages are available?
+          <svg class="faq-item__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,5 7,10 12,5"/></svg>
+        </summary>
+        <p class="faq-item__a">Currently English, Spanish, and French. More languages are added regularly as new creators join the platform.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-item__q">
+          Do I need any prior language experience?
+          <svg class="faq-item__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,5 7,10 12,5"/></svg>
+        </summary>
+        <p class="faq-item__a">Not at all. The feed surfaces content matched to your level, so beginners and advanced learners both find relevant lessons immediately.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-item__q">
+          How does the XP and streak system work?
+          <svg class="faq-item__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,5 7,10 12,5"/></svg>
+        </summary>
+        <p class="faq-item__a">You earn XP by completing quizzes. Correct answers give more XP. Your daily streak increases every day you complete at least one quiz. Miss a day and it resets.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-item__q">
+          Can I become a content creator?
+          <svg class="faq-item__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,5 7,10 12,5"/></svg>
+        </summary>
+        <p class="faq-item__a">Yes! Sign up and select the creator role during onboarding. You can upload videos and attach quizzes directly from your dashboard.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════════ -->
+<footer class="footer section">
+  <div class="container">
+    <div class="footer__inner">
+      <div class="footer__brand">Language<span>App</span></div>
+      <nav class="footer__links" aria-label="Footer navigation">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/login">Login</a>
+        <a href="/signup">Sign up</a>
+      </nav>
+      <span class="footer__copy">&copy; 2025 LanguageApp. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+
 {% endblock %}
