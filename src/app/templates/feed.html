@@ -1,45 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Feed – Language App{% endblock %}
+
 {% block content %}
-<h1>Your Feed</h1>
-<p>
-  Learning <strong>{{ profile.target_language.value | upper }}</strong>
-  at level <strong>{{ profile.level.value }}</strong>.
-  &nbsp;<a href="/onboarding">Change</a>
-</p>
+<div class="container">
 
-<div id="feed-container">
-  {% for video in items %}
-  <div class="video-card" style="margin-bottom:2rem;border-bottom:1px solid #ccc;padding-bottom:1rem;">
-    <h3>{{ video.title }}</h3>
-    {% if video.caption %}<p>{{ video.caption }}</p>{% endif %}
-    <video controls width="100%" style="max-width:640px;display:block;">
-      <source src="{{ video.video_url }}" type="video/mp4">
-      Your browser does not support the video element.
-    </video>
-    <p style="margin-top:0.6rem;">
-      <small style="color:#888;">
-        {{ video.language.value | upper }} · {{ video.level.value }}
-        {% if video.published_at %}· {{ video.published_at.strftime('%Y-%m-%d') }}{% endif %}
-      </small>
-      &nbsp;&nbsp;
-      <a href="/content/{{ video.id }}/quiz"
-         style="padding:0.3rem 0.8rem; background:#007bff; color:#fff; text-decoration:none; border-radius:4px; font-size:0.9rem;">
-        Take quiz →
-      </a>
-    </p>
+  <!-- Page header -->
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h1 class="page-title">Your Feed</h1>
+      <p class="page-subtitle">
+        Learning <strong style="color:var(--text);">{{ profile.target_language.value | upper }}</strong>
+        · Level <strong style="color:var(--text);">{{ profile.level.value }}</strong>
+        &nbsp;<a href="/onboarding" style="font-size:0.8125rem;color:var(--accent);font-weight:500;">Change</a>
+      </p>
+    </div>
+    <a href="/progress" class="btn btn-ghost btn-sm">View progress →</a>
   </div>
-  {% else %}
-  <p id="empty-state">No videos available yet for your language and level. Check back soon!</p>
-  {% endfor %}
+
+  <!-- Feed -->
+  <div id="feed-container">
+    {% for video in items %}
+    <div class="video-card">
+      <div class="video-card__media">
+        <video controls preload="metadata">
+          <source src="{{ video.video_url }}" type="video/mp4">
+          Your browser does not support the video element.
+        </video>
+      </div>
+      <div class="video-card__body">
+        <h3 class="video-card__title">{{ video.title }}</h3>
+        {% if video.caption %}
+        <p class="video-card__caption">{{ video.caption }}</p>
+        {% endif %}
+        <div class="video-card__footer">
+          <div class="video-card__meta">
+            <span class="chip chip-muted">{{ video.language.value | upper }}</span>
+            <span class="chip chip-muted">{{ video.level.value }}</span>
+            {% if video.published_at %}
+            <span class="meta-dot">·</span>
+            <span>{{ video.published_at.strftime('%b %d, %Y') }}</span>
+            {% endif %}
+          </div>
+          <a href="/content/{{ video.id }}/quiz" class="btn btn-primary btn-sm">
+            Take quiz →
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state__icon">📭</div>
+      <div class="empty-state__title">No videos yet</div>
+      <p id="empty-state" class="empty-state__desc">
+        No videos available for your language and level yet. Check back soon!
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if next_cursor %}
+  <div style="text-align:center;margin-top:12px;">
+    <button id="load-more-btn" class="btn btn-ghost" data-cursor="{{ next_cursor }}">
+      Load more
+    </button>
+  </div>
+  {% endif %}
+
 </div>
+{% endblock %}
 
-{% if next_cursor %}
-<button id="load-more-btn" data-cursor="{{ next_cursor }}" style="margin-top:1rem;padding:0.5rem 1rem;">
-  Load more
-</button>
-{% endif %}
-
+{% block extra_scripts %}
 <script>
 (function () {
   "use strict";
@@ -75,49 +105,74 @@
 
     // Remove empty-state message if present
     const empty = document.getElementById("empty-state");
-    if (empty) empty.remove();
+    if (empty) empty.closest(".empty-state") ? empty.closest(".empty-state").remove() : empty.remove();
 
     for (const v of data.items) {
       const card = document.createElement("div");
       card.className = "video-card";
-      card.style.cssText = "margin-bottom:2rem;border-bottom:1px solid #ccc;padding-bottom:1rem;";
 
-      const title = document.createElement("h3");
-      title.textContent = v.title;
-      card.appendChild(title);
-
-      if (v.caption) {
-        const caption = document.createElement("p");
-        caption.textContent = v.caption;
-        card.appendChild(caption);
-      }
+      const media = document.createElement("div");
+      media.className = "video-card__media";
 
       const video = document.createElement("video");
       video.controls = true;
-      video.style.cssText = "max-width:640px;display:block;width:100%;";
-
+      video.preload = "metadata";
       const source = document.createElement("source");
       source.src = v.video_url;
       source.type = "video/mp4";
       video.appendChild(source);
       video.appendChild(document.createTextNode("Your browser does not support the video element."));
-      card.appendChild(video);
+      media.appendChild(video);
+      card.appendChild(media);
 
-      const meta = document.createElement("p");
-      meta.style.marginTop = "0.6rem";
-      const small = document.createElement("small");
-      small.style.color = "#888";
+      const body = document.createElement("div");
+      body.className = "video-card__body";
+
+      const title = document.createElement("h3");
+      title.className = "video-card__title";
+      title.textContent = v.title;
+      body.appendChild(title);
+
+      if (v.caption) {
+        const caption = document.createElement("p");
+        caption.className = "video-card__caption";
+        caption.textContent = v.caption;
+        body.appendChild(caption);
+      }
+
+      const footer = document.createElement("div");
+      footer.className = "video-card__footer";
+
+      const meta = document.createElement("div");
+      meta.className = "video-card__meta";
+      const langChip = document.createElement("span");
+      langChip.className = "chip chip-muted";
+      langChip.textContent = v.language.toUpperCase();
+      meta.appendChild(langChip);
+      const lvlChip = document.createElement("span");
+      lvlChip.className = "chip chip-muted";
+      lvlChip.textContent = v.level;
+      meta.appendChild(lvlChip);
       const pubDate = v.published_at ? v.published_at.slice(0, 10) : "";
-      small.textContent = v.language.toUpperCase() + " · " + v.level + (pubDate ? " · " + pubDate : "");
-      meta.appendChild(small);
-      meta.insertAdjacentHTML("beforeend", "&nbsp;&nbsp;");
+      if (pubDate) {
+        const dot = document.createElement("span");
+        dot.className = "meta-dot";
+        dot.textContent = "·";
+        meta.appendChild(dot);
+        const date = document.createElement("span");
+        date.textContent = pubDate;
+        meta.appendChild(date);
+      }
+      footer.appendChild(meta);
+
       const quizLink = document.createElement("a");
       quizLink.href = "/content/" + v.id + "/quiz";
       quizLink.textContent = "Take quiz →";
-      quizLink.style.cssText = "padding:0.3rem 0.8rem;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;font-size:0.9rem;";
-      meta.appendChild(quizLink);
-      card.appendChild(meta);
+      quizLink.className = "btn btn-primary btn-sm";
+      footer.appendChild(quizLink);
 
+      body.appendChild(footer);
+      card.appendChild(body);
       container.appendChild(card);
     }
 
@@ -126,7 +181,7 @@
       btn.disabled = false;
       btn.textContent = "Load more";
     } else {
-      btn.remove();
+      btn.parentElement.remove();
     }
   });
 }());

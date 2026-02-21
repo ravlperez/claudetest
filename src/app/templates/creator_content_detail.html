@@ -1,86 +1,140 @@
 {% extends "base.html" %}
 {% block title %}{{ content.title }} – Language App{% endblock %}
+
 {% block content %}
-<p><a href="/creator">← Back to dashboard</a></p>
+<div class="container--narrow">
 
-<h1>{{ content.title }}</h1>
+  <a href="/creator" class="back-link">← Back to dashboard</a>
 
-<table style="border-collapse:collapse; margin-bottom:1.5rem;">
-  <tr>
-    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Status</td>
-    <td>
-      {% if content.status == 'published' %}
-        <strong style="color:green;">Published</strong>
-        {% if content.published_at %}
-          &nbsp;<small>({{ content.published_at.strftime('%Y-%m-%d %H:%M') }} UTC)</small>
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <h1 class="page-title">{{ content.title }}</h1>
+    {% if content.status == 'published' %}
+      <span class="chip chip-published">✓ Published</span>
+    {% else %}
+      <span class="chip chip-draft">Draft</span>
+    {% endif %}
+  </div>
+
+  <!-- Content metadata -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-header__title">Content details</span>
+    </div>
+    <div class="card-body">
+      <table class="meta-table">
+        <tr>
+          <th>Status</th>
+          <td>
+            {% if content.status == 'published' %}
+              <span style="color:var(--accent);font-weight:600;">Published</span>
+              {% if content.published_at %}
+                <span style="color:var(--text-subtle);font-size:0.8125rem;margin-left:6px;">
+                  {{ content.published_at.strftime('%Y-%m-%d %H:%M') }} UTC
+                </span>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--text-muted);">Draft</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Language</th>
+          <td><span class="chip chip-muted">{{ content.language }}</span></td>
+        </tr>
+        <tr>
+          <th>Level</th>
+          <td><span class="chip chip-muted">{{ content.level }}</span></td>
+        </tr>
+        <tr>
+          <th>Video URL</th>
+          <td>
+            <a href="{{ content.video_url }}" target="_blank" rel="noopener noreferrer"
+               style="word-break:break-all;">
+              {{ content.video_url }}
+            </a>
+          </td>
+        </tr>
+        {% if content.caption %}
+        <tr>
+          <th>Caption</th>
+          <td>{{ content.caption }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Quiz section -->
+  <div class="section-title">Quiz</div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-body">
+      {% if quiz %}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <span style="color:var(--text);font-weight:600;">{{ q_count }} question{{ 's' if q_count != 1 else '' }}</span>
+            <span style="color:var(--text-subtle);font-size:0.875rem;margin-left:6px;">attached</span>
+          </div>
+          <a href="/creator/content/{{ content.id }}/quiz" class="btn btn-ghost btn-sm">Edit quiz →</a>
+        </div>
+
+        {% if q_count < 3 %}
+          <div class="alert alert-warning" style="margin-top:14px;margin-bottom:0;">
+            <span class="alert-icon">⚠</span>
+            <span>Minimum 3 questions required before publishing (currently {{ q_count }}).</span>
+          </div>
+        {% elif q_count > 5 %}
+          <div class="alert alert-warning" style="margin-top:14px;margin-bottom:0;">
+            <span class="alert-icon">⚠</span>
+            <span>Maximum 5 questions allowed (currently {{ q_count }}).</span>
+          </div>
         {% endif %}
       {% else %}
-        <span style="color:#888;">Draft</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <p id="quiz-missing" style="color:var(--text-subtle);font-size:0.9rem;">
+            No quiz attached yet.
+          </p>
+          <a href="/creator/content/{{ content.id }}/quiz" class="btn btn-primary btn-sm">+ Add quiz</a>
+        </div>
       {% endif %}
-    </td>
-  </tr>
-  <tr>
-    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Language</td>
-    <td>{{ content.language }}</td>
-  </tr>
-  <tr>
-    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Level</td>
-    <td>{{ content.level }}</td>
-  </tr>
-  <tr>
-    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Video URL</td>
-    <td>
-      <a href="{{ content.video_url }}" target="_blank" rel="noopener noreferrer">
-        {{ content.video_url }}
-      </a>
-    </td>
-  </tr>
-  {% if content.caption %}
-  <tr>
-    <td style="padding:0.3rem 1rem 0.3rem 0; color:#555;">Caption</td>
-    <td>{{ content.caption }}</td>
-  </tr>
-  {% endif %}
-</table>
+    </div>
+  </div>
 
-<!-- ── Quiz status ─────────────────────────────────────────────────── -->
-<h2>Quiz</h2>
-{% if quiz %}
-  <p>
-    Quiz attached — <strong>{{ q_count }}</strong> question{{ 's' if q_count != 1 else '' }}.
-    &nbsp;<a href="/creator/content/{{ content.id }}/quiz">Edit quiz</a>
-  </p>
-  {% if q_count < 3 %}
-    <p style="color:orange;">⚠ Minimum 3 questions required before publishing.</p>
-  {% elif q_count > 5 %}
-    <p style="color:orange;">⚠ Maximum 5 questions allowed.</p>
+  <!-- Publish section -->
+  {% if content.status == 'draft' %}
+  <div class="section-title">Publish</div>
+  <div class="card">
+    <div class="card-body">
+      {% if can_publish %}
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">
+          Ready to publish! The quiz has {{ q_count }} question{{ 's' if q_count != 1 else '' }}.
+          Once published, it will appear in learners' feeds.
+        </p>
+        <div class="actions">
+          <button id="publish-btn" class="btn btn-primary">Publish now →</button>
+          <span id="publish-status" aria-live="polite" style="font-size:0.9rem;"></span>
+        </div>
+      {% else %}
+        <div class="alert alert-warning" style="margin-bottom:0;">
+          <span class="alert-icon">⚠</span>
+          <span>
+            Cannot publish yet —
+            {% if not quiz %}
+              a quiz with 3–5 questions is required.
+            {% elif q_count < 3 %}
+              the quiz needs at least 3 questions (currently {{ q_count }}).
+            {% elif q_count > 5 %}
+              the quiz has too many questions (max 5, currently {{ q_count }}).
+            {% else %}
+              unknown reason.
+            {% endif %}
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
   {% endif %}
-{% else %}
-  <p id="quiz-missing">No quiz yet. <a href="/creator/content/{{ content.id }}/quiz">Add quiz</a></p>
-{% endif %}
 
-<!-- ── Publish section ─────────────────────────────────────────────── -->
-{% if content.status == 'draft' %}
-<h2>Publish</h2>
-{% if can_publish %}
-  <p>Ready to publish! The quiz has {{ q_count }} question{{ 's' if q_count != 1 else '' }}.</p>
-  <button id="publish-btn">Publish Now</button>
-  <span id="publish-status" style="margin-left:1rem;"></span>
-{% else %}
-  <p style="color:#888;">
-    Cannot publish yet —
-    {% if not quiz %}
-      a quiz with 3–5 questions is required.
-    {% elif q_count < 3 %}
-      the quiz needs at least 3 questions (currently {{ q_count }}).
-    {% elif q_count > 5 %}
-      the quiz has too many questions (maximum 5, currently {{ q_count }}).
-    {% else %}
-      unknown reason.
-    {% endif %}
-  </p>
-{% endif %}
-{% endif %}
+</div>
 
 {% if can_publish %}
 <script>
@@ -93,6 +147,7 @@
   btn.addEventListener("click", async function () {
     btn.disabled = true;
     status.textContent = "Publishing…";
+    status.className = "";
     try {
       const res = await fetch("/api/creator/content/" + contentId + "/publish", {
         method: "POST",
@@ -100,16 +155,16 @@
       });
       const body = await res.json().catch(function () { return {}; });
       if (res.ok) {
-        status.style.color = "green";
+        status.className = "form-status-ok";
         status.textContent = "Published! Reloading…";
         setTimeout(function () { location.reload(); }, 800);
       } else {
-        status.style.color = "red";
+        status.className = "form-status-err";
         status.textContent = "Error: " + (body.detail || res.statusText);
         btn.disabled = false;
       }
     } catch (_) {
-      status.style.color = "red";
+      status.className = "form-status-err";
       status.textContent = "Network error. Please try again.";
       btn.disabled = false;
     }
