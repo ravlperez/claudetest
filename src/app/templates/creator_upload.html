@@ -1,33 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Upload Video – Language App{% endblock %}
+
 {% block content %}
-<h1>Upload a Video</h1>
-<p>Select an mp4 file (max 100 MB). The file uploads directly to storage — no server middleman.</p>
+<div class="container--narrow">
 
-<form id="upload-form">
-  <div>
-    <label for="file-input">Video file (mp4 only, ≤ 100 MB)</label><br>
-    <input type="file" id="file-input" name="file" accept="video/mp4" required>
+  <a href="/creator" class="back-link">← Back to dashboard</a>
+
+  <div class="page-header">
+    <h1 class="page-title">Upload a Video</h1>
+    <p class="page-subtitle">Select an MP4 file (max 100 MB). Files upload directly to storage.</p>
   </div>
-  <br>
-  <button type="submit" id="submit-btn">Upload</button>
-</form>
 
-<div id="status" style="margin-top:1rem;" aria-live="polite"></div>
+  <div class="card">
+    <div class="card-body">
+      <form id="upload-form">
 
+        <div class="form-group">
+          <label class="form-label">Video file</label>
+          <div class="file-drop-zone" style="position:relative;">
+            <div class="file-drop-icon">↑</div>
+            <p class="file-drop-text">
+              <strong>Click to browse</strong> or drag and drop<br>
+              <span style="font-size:0.8125rem;color:var(--text-subtle);">MP4 only · Max 100 MB</span>
+            </p>
+            <input type="file" id="file-input" name="file" accept="video/mp4" required
+                   class="file-input-hidden">
+          </div>
+          <p class="form-hint" id="file-name-display" style="margin-top:8px;"></p>
+        </div>
+
+        <div class="actions" style="margin-top:4px;">
+          <button type="submit" id="submit-btn" class="btn btn-primary">
+            Upload →
+          </button>
+        </div>
+      </form>
+
+      <div id="status" aria-live="polite" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
 (function () {
   "use strict";
 
-  const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
-  const form     = document.getElementById("upload-form");
-  const fileInput = document.getElementById("file-input");
-  const submitBtn = document.getElementById("submit-btn");
-  const statusEl  = document.getElementById("status");
+  const MAX_SIZE   = 100 * 1024 * 1024; // 100 MB
+  const form       = document.getElementById("upload-form");
+  const fileInput  = document.getElementById("file-input");
+  const submitBtn  = document.getElementById("submit-btn");
+  const statusEl   = document.getElementById("status");
+  const fileNameEl = document.getElementById("file-name-display");
+
+  fileInput.addEventListener("change", function () {
+    const file = fileInput.files[0];
+    if (file) {
+      fileNameEl.textContent = "Selected: " + file.name + " (" + (file.size / 1024 / 1024).toFixed(1) + " MB)";
+      fileNameEl.style.color = "var(--text-muted)";
+    }
+  });
 
   function setStatus(msg, isError) {
-    statusEl.textContent = msg;
-    statusEl.style.color = isError ? "red" : "inherit";
+    statusEl.innerHTML = "";
+    const p = document.createElement("p");
+    p.textContent = msg;
+    p.style.color = isError ? "var(--danger)" : "var(--text-muted)";
+    p.style.fontSize = "0.9rem";
+    statusEl.appendChild(p);
   }
 
   form.addEventListener("submit", async function (evt) {
@@ -36,9 +78,8 @@
     const file = fileInput.files[0];
     if (!file) { setStatus("Please select a file.", true); return; }
 
-    // Client-side validation (mirrors server-side rules)
     if (file.type !== "video/mp4") {
-      setStatus("Only mp4 files are accepted.", true);
+      setStatus("Only MP4 files are accepted.", true);
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -47,9 +88,9 @@
     }
 
     submitBtn.disabled = true;
-    setStatus("Requesting upload URL…");
+    setStatus("Requesting upload URL…", false);
 
-    // ── Step 1: get presigned URL from our server ───────────────────────────
+    // ── Step 1: get presigned URL ───────────────────────────────────────────
     let presignData;
     try {
       const res = await fetch("/api/uploads/presign", {
@@ -71,8 +112,8 @@
       return;
     }
 
-    // ── Step 2: PUT file directly to R2 ────────────────────────────────────
-    setStatus("Uploading… (this may take a moment)");
+    // ── Step 2: PUT file to R2 ──────────────────────────────────────────────
+    setStatus("Uploading… (this may take a moment)", false);
     try {
       const uploadRes = await fetch(presignData.upload_url, {
         method: "PUT",
@@ -92,23 +133,28 @@
 
     // ── Done ────────────────────────────────────────────────────────────────
     submitBtn.disabled = false;
-    statusEl.textContent = "";
+    statusEl.innerHTML = "";
 
-    const successMsg = document.createElement("p");
-    successMsg.style.color = "green";
-    successMsg.textContent = "Upload complete!";
-    statusEl.appendChild(successMsg);
+    const successDiv = document.createElement("div");
+    successDiv.className = "alert alert-success";
+    successDiv.innerHTML = '<span class="alert-icon">✓</span><span>Upload complete!</span>';
+    statusEl.appendChild(successDiv);
 
-    const label = document.createElement("p");
-    label.textContent = "Public URL (save this to use in content creation):";
-    statusEl.appendChild(label);
-
+    const urlCard = document.createElement("div");
+    urlCard.className = "card";
+    urlCard.style.marginTop = "16px";
+    urlCard.innerHTML = '<div class="card-header"><span class="card-header__title">Public URL</span><span style="font-size:0.8125rem;color:var(--text-subtle);">Copy this to use in content creation</span></div>';
+    const urlBody = document.createElement("div");
+    urlBody.className = "card-body";
     const urlLink = document.createElement("a");
     urlLink.href = presignData.public_url;
     urlLink.textContent = presignData.public_url;
     urlLink.target = "_blank";
     urlLink.rel = "noopener noreferrer";
-    statusEl.appendChild(urlLink);
+    urlLink.style.cssText = "color:var(--accent);word-break:break-all;font-size:0.875rem;";
+    urlBody.appendChild(urlLink);
+    urlCard.appendChild(urlBody);
+    statusEl.appendChild(urlCard);
   });
 }());
 </script>

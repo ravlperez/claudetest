@@ -1,65 +1,81 @@
 {% extends "base.html" %}
 {% block title %}Quiz for {{ content.title }} – Language App{% endblock %}
+
 {% block content %}
-<p><a href="/creator/content/{{ content.id }}">← Back to content</a></p>
-<h1>{% if existing_quiz %}Edit{% else %}Add{% endif %} Quiz</h1>
-<p><strong>{{ content.title }}</strong></p>
-<p>Add <strong>3–5 multiple-choice questions</strong>. Each question needs a prompt,
-   at least 2 options, and one correct answer marked.</p>
+<div class="container--narrow">
 
-<div id="quiz-form">
-  {% for slot in range(1, 6) %}
-  <fieldset id="q{{ slot }}" style="margin-bottom:1.5rem; padding:1rem; border:1px solid #ddd; border-radius:4px;">
-    <legend>
-      Question {{ slot }}
-      {% if slot <= 3 %}<span style="color:#c00;"> (required)</span>{% else %} <span style="color:#888;">(optional)</span>{% endif %}
-    </legend>
+  <a href="/creator/content/{{ content.id }}" class="back-link">← Back to content</a>
 
-    <div style="margin-bottom:0.75rem;">
-      <label><strong>Prompt</strong></label><br>
-      <textarea id="q{{ slot }}_prompt" rows="2"
-                style="width:100%; max-width:560px; padding:0.3rem;"
-                placeholder="e.g. Which form is correct?"></textarea>
-    </div>
+  <div class="page-header">
+    <h1 class="page-title">{% if existing_quiz %}Edit{% else %}Add{% endif %} Quiz</h1>
+    <p class="page-subtitle">
+      <strong style="color:var(--text);">{{ content.title }}</strong> ·
+      Add <strong style="color:var(--text);">3–5</strong> multiple-choice questions.
+      Each needs a prompt, at least 2 options, and one correct answer.
+    </p>
+  </div>
 
-    <div style="margin-bottom:0.5rem;"><strong>Options</strong> (mark the correct one)</div>
-    {% for opt in range(1, 5) %}
-    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
-      <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
-             id="q{{ slot }}_r{{ opt }}">
-      <label for="q{{ slot }}_r{{ opt }}" style="min-width:2rem;">{{ ["A","B","C","D"][opt-1] }}</label>
-      <input type="text" id="q{{ slot }}_opt{{ opt }}"
-             style="flex:1; max-width:320px; padding:0.25rem;"
-             placeholder="Option {{ ["A","B","C","D"][opt-1] }}">
+  <div id="quiz-form">
+    {% for slot in range(1, 6) %}
+    <div class="fieldset-card" id="q{{ slot }}">
+      <div class="fieldset-card__legend">
+        <span style="width:28px;height:28px;background:rgba(0,212,138,0.10);border:1px solid rgba(0,212,138,0.20);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--accent);">{{ slot }}</span>
+        Question {{ slot }}
+        {% if slot <= 3 %}
+          <span class="chip chip-danger">required</span>
+        {% else %}
+          <span class="chip chip-muted">optional</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="q{{ slot }}_prompt">Prompt</label>
+        <textarea class="form-textarea" id="q{{ slot }}_prompt" rows="2"
+                  placeholder="e.g. Which form is correct?"></textarea>
+      </div>
+
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Options <span style="font-weight:400;color:var(--text-subtle);">(mark the correct answer)</span></label>
+      </div>
+
+      {% for opt in range(1, 5) %}
+      <div class="quiz-option">
+        <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+               id="q{{ slot }}_r{{ opt }}">
+        <label for="q{{ slot }}_r{{ opt }}" class="quiz-option-label">{{ ["A","B","C","D"][opt-1] }}</label>
+        <input type="text" id="q{{ slot }}_opt{{ opt }}" class="form-input"
+               placeholder="Option {{ ["A","B","C","D"][opt-1] }}">
+      </div>
+      {% endfor %}
+
+      <!-- Extra options (5th and 6th) — hidden by default -->
+      {% for opt in range(5, 7) %}
+      <div id="q{{ slot }}_extra{{ opt }}" class="quiz-option" style="display:none;">
+        <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+               id="q{{ slot }}_r{{ opt }}">
+        <label for="q{{ slot }}_r{{ opt }}" class="quiz-option-label">{{ ["E","F"][opt-5] }}</label>
+        <input type="text" id="q{{ slot }}_opt{{ opt }}" class="form-input"
+               placeholder="Option {{ ["E","F"][opt-5] }}">
+      </div>
+      {% endfor %}
+
+      <div class="actions" style="margin-top:10px;">
+        <button type="button" class="add-opt-btn btn btn-ghost btn-sm" data-q="{{ slot }}">+ Add option</button>
+        <button type="button" class="rm-opt-btn btn btn-ghost btn-sm" data-q="{{ slot }}" style="display:none;">− Remove last</button>
+      </div>
     </div>
     {% endfor %}
-    <!-- Extra options (5th and 6th) — hidden by default -->
-    {% for opt in range(5, 7) %}
-    <div id="q{{ slot }}_extra{{ opt }}"
-         style="display:none; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
-      <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
-             id="q{{ slot }}_r{{ opt }}">
-      <label for="q{{ slot }}_r{{ opt }}" style="min-width:2rem;">{{ ["E","F"][opt-5] }}</label>
-      <input type="text" id="q{{ slot }}_opt{{ opt }}"
-             style="flex:1; max-width:320px; padding:0.25rem;"
-             placeholder="Option {{ ["E","F"][opt-5] }}">
-    </div>
-    {% endfor %}
-    <div style="margin-top:0.4rem;">
-      <button type="button" class="add-opt-btn" data-q="{{ slot }}"
-              style="font-size:0.85rem;">+ Add option</button>
-      <button type="button" class="rm-opt-btn" data-q="{{ slot }}"
-              style="font-size:0.85rem; display:none;">− Remove last option</button>
-    </div>
-  </fieldset>
-  {% endfor %}
 
-  <button id="submit-btn" type="button" style="padding:0.5rem 1.5rem; font-size:1rem;">
-    Save Quiz
-  </button>
-  <div id="form-status" style="margin-top:1rem;" aria-live="polite"></div>
+    <div class="actions" style="margin-top:8px;">
+      <button id="submit-btn" type="button" class="btn btn-primary">Save quiz →</button>
+    </div>
+    <div id="form-status" style="margin-top:14px;" aria-live="polite"></div>
+  </div>
+
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
 (function () {
   "use strict";
@@ -81,7 +97,6 @@
         var optEl = document.getElementById("q" + slot + "_opt" + (j + 1));
         if (optEl) {
           optEl.value = opt;
-          // Reveal 5th / 6th option containers if needed
           if (j >= 4) {
             var container = document.getElementById("q" + slot + "_extra" + (j + 1));
             if (container) container.style.display = "flex";
@@ -105,7 +120,7 @@
       optCounters[q]++;
       var el = document.getElementById("q" + q + "_extra" + optCounters[q]);
       if (el) el.style.display = "flex";
-      document.querySelector(".rm-opt-btn[data-q='" + q + "']").style.display = "inline";
+      document.querySelector(".rm-opt-btn[data-q='" + q + "']").style.display = "inline-flex";
       if (optCounters[q] >= 6) this.style.display = "none";
     });
   });
@@ -123,7 +138,7 @@
         if (radio) radio.checked = false;
       }
       optCounters[q]--;
-      document.querySelector(".add-opt-btn[data-q='" + q + "']").style.display = "inline";
+      document.querySelector(".add-opt-btn[data-q='" + q + "']").style.display = "inline-flex";
       if (optCounters[q] <= 4) this.style.display = "none";
     });
   });
@@ -134,7 +149,7 @@
 
   function setStatus(msg, isError) {
     statusEl.textContent = msg;
-    statusEl.style.color = isError ? "red" : "green";
+    statusEl.className = isError ? "form-status-err" : "form-status-ok";
   }
 
   submitBtn.addEventListener("click", async function () {
@@ -142,7 +157,7 @@
 
     for (var slot = 1; slot <= NUM_SLOTS; slot++) {
       var prompt = (document.getElementById("q" + slot + "_prompt").value || "").trim();
-      if (!prompt) continue;  // skip empty slots
+      if (!prompt) continue;
 
       var options = [];
       for (var o = 1; o <= 6; o++) {
@@ -160,7 +175,6 @@
       questions.push({ prompt: prompt, options: options, correct_option_index: correctIndex });
     }
 
-    /* Client-side guard (mirrors server validation) */
     if (questions.length < 3 || questions.length > 5) {
       setStatus("Please fill in 3–5 questions.", true);
       return;
@@ -181,8 +195,8 @@
     }
 
     submitBtn.disabled = true;
-    setStatus("Saving quiz…", false);
-    statusEl.style.color = "inherit";
+    statusEl.className = "";
+    statusEl.textContent = "Saving quiz…";
 
     try {
       var res = await fetch("/api/creator/content/" + CONTENT_ID + "/quiz", {

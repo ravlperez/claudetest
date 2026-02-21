@@ -1,32 +1,55 @@
 {% extends "base.html" %}
 {% block title %}Sign Up – Language App{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
 {% block content %}
-<h1>Create an account</h1>
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-card__icon">✦</div>
+    <h1 class="auth-card__title">Create an account</h1>
+    <p class="auth-card__sub">Start learning a language in minutes a day.</p>
 
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
+    {% if error %}
+    <div class="alert alert-error" role="alert">
+      <span class="alert-icon">⚠</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
 
-<form method="post" action="/signup">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <div>
-    <label for="email">Email</label><br>
-    <input type="email" id="email" name="email" required autocomplete="email">
-  </div>
-  <div>
-    <label for="password">Password (min 8 characters)</label><br>
-    <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
-  </div>
-  <div>
-    <label for="role">I want to</label><br>
-    <select id="role" name="role">
-      <option value="learner">Learn languages</option>
-      <option value="creator">Create content</option>
-    </select>
-  </div>
-  <br>
-  <button type="submit">Sign Up</button>
-</form>
+    <form method="post" action="/signup" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-<p>Already have an account? <a href="/login">Log in</a></p>
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-input" type="email" id="email" name="email"
+               required autocomplete="email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">
+          Password
+          <span style="font-size:0.75rem;font-weight:400;color:var(--text-subtle);margin-left:4px;">(min 8 characters)</span>
+        </label>
+        <input class="form-input" type="password" id="password" name="password"
+               required minlength="8" autocomplete="new-password" placeholder="••••••••">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="role">I want to</label>
+        <select class="form-select" id="role" name="role">
+          <option value="learner">🎓 Learn languages</option>
+          <option value="creator">🎬 Create content</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary btn-full" type="submit" style="margin-top:8px;">
+        Get started free →
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Already have an account? <a href="/login">Log in</a>
+    </p>
+  </div>
+</div>
 {% endblock %}

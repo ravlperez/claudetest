@@ -1,35 +1,55 @@
 {% extends "base.html" %}
 {% block title %}{{ content.title }} – Quiz – Language App{% endblock %}
+
 {% block content %}
-<p><a href="/feed">← Back to feed</a></p>
+<div class="container--narrow">
 
-<h1>{{ content.title }}</h1>
+  <a href="/feed" class="back-link">← Back to feed</a>
 
-<video controls style="width:100%; max-width:640px; display:block; margin-bottom:1.5rem;">
-  <source src="{{ content.video_url }}" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+  <div class="page-header">
+    <h1 class="page-title">{{ content.title }}</h1>
+  </div>
 
-<h2>Quiz</h2>
-<p id="quiz-error" style="color:red; display:none;"></p>
+  <!-- Video player -->
+  <div class="card" style="margin-bottom:24px;overflow:hidden;">
+    <div style="background:#000;">
+      <video controls style="width:100%;max-height:360px;display:block;">
+        <source src="{{ content.video_url }}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
 
-<form id="quiz-form">
-{% for q in questions %}
-  <fieldset style="margin-bottom:1.2rem; border:1px solid #ccc; padding:0.8rem 1rem; border-radius:4px;">
-    <legend style="font-weight:bold;">{{ loop.index }}. {{ q.prompt }}</legend>
-    {% for opt in q.options %}
-    <label style="display:block; margin:0.3rem 0; cursor:pointer;">
-      <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" required>
-      {{ opt }}
-    </label>
+  <!-- Quiz -->
+  <div class="section-title">Quiz</div>
+
+  <div class="alert alert-error" id="quiz-error" style="display:none;" role="alert">
+    <span class="alert-icon">⚠</span>
+    <span id="quiz-error-text"></span>
+  </div>
+
+  <form id="quiz-form">
+    {% for q in questions %}
+    <div class="quiz-fieldset">
+      <legend>{{ loop.index }}. {{ q.prompt }}</legend>
+      {% for opt in q.options %}
+      <label class="quiz-radio-label">
+        <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" required>
+        {{ opt }}
+      </label>
+      {% endfor %}
+    </div>
     {% endfor %}
-  </fieldset>
-{% endfor %}
-  <button type="submit" style="padding:0.6rem 1.4rem; font-size:1rem; cursor:pointer;">
-    Submit answers
-  </button>
-</form>
 
+    <div style="margin-top:8px;">
+      <button type="submit" class="btn btn-primary">Submit answers →</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
 (function () {
   var CONTENT_ID = {{ content.id }};
@@ -37,7 +57,8 @@
 
   document.getElementById('quiz-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    var errEl = document.getElementById('quiz-error');
+    var errEl   = document.getElementById('quiz-error');
+    var errText = document.getElementById('quiz-error-text');
     errEl.style.display = 'none';
 
     var answers = [];
@@ -49,8 +70,9 @@
         if (radios[j].checked) { selected = parseInt(radios[j].value, 10); break; }
       }
       if (selected === null) {
-        errEl.textContent = 'Please answer all questions before submitting.';
-        errEl.style.display = 'block';
+        errText.textContent = 'Please answer all questions before submitting.';
+        errEl.style.display = 'flex';
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       answers.push({ question_id: qid, selected_index: selected });
@@ -66,13 +88,13 @@
       if (res.ok) {
         window.location.href = '/attempts/' + res.data.attempt_id;
       } else {
-        errEl.textContent = res.data.detail || 'Submission failed. Please try again.';
-        errEl.style.display = 'block';
+        errText.textContent = res.data.detail || 'Submission failed. Please try again.';
+        errEl.style.display = 'flex';
       }
     })
     .catch(function () {
-      errEl.textContent = 'Network error. Please try again.';
-      errEl.style.display = 'block';
+      errText.textContent = 'Network error. Please try again.';
+      errEl.style.display = 'flex';
     });
   });
 }());
