@@ -241,7 +241,7 @@ def page_login_submit(
         )
 
     token = create_session_token(user.id, user.role.value)
-    redirect = RedirectResponse(url="/", status_code=303)
+    redirect = RedirectResponse(url="/feed", status_code=303)
     set_session_cookie(redirect, token)
     return redirect
 
