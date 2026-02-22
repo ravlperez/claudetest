@@ -18,16 +18,12 @@
     </div>
     <div class="card-body">
       <div class="file-drop-zone" id="drop-zone">
-        <div class="file-drop-icon">↑</div>
-        <p class="file-drop-text">
+        <div class="file-drop-icon" id="drop-icon">↑</div>
+        <p class="file-drop-text" id="drop-text">
           <strong>Click to browse</strong> or drag and drop<br>
           <span style="font-size:0.8125rem;color:var(--text-subtle);">MP4 only · Max 100 MB</span>
         </p>
         <input type="file" id="file-input" accept="video/mp4" class="file-input-hidden">
-      </div>
-      <p class="form-hint" id="file-name-display" style="margin-top:8px;"></p>
-      <div class="actions" style="margin-top:12px;">
-        <button type="button" id="upload-btn" class="btn btn-primary" disabled>Upload video →</button>
       </div>
       <div id="upload-status" aria-live="polite" style="margin-top:14px;"></div>
     </div>
@@ -165,9 +161,10 @@
 
   /* ── DOM refs ───────────────────────────────────────────────────────── */
   var fileInput    = document.getElementById("file-input");
-  var uploadBtn    = document.getElementById("upload-btn");
   var uploadStatus = document.getElementById("upload-status");
-  var fileNameEl   = document.getElementById("file-name-display");
+  var dropZone     = document.getElementById("drop-zone");
+  var dropIcon     = document.getElementById("drop-icon");
+  var dropText     = document.getElementById("drop-text");
   var stepDetails  = document.getElementById("step-details");
   var saveBtn      = document.getElementById("save-btn");
   var saveStatus   = document.getElementById("save-status");
@@ -183,17 +180,59 @@
     return statusText || ("HTTP " + status);
   }
 
-  /* ── File picker ────────────────────────────────────────────────────── */
+  function setUploadMsg(html, isError) {
+    uploadStatus.innerHTML = "<p style='font-size:0.9rem;color:" + (isError ? "var(--danger)" : "var(--text-muted)") + ";margin-top:4px;'>" + html + "</p>";
+  }
+
+  /* ── Auto-upload on file select ─────────────────────────────────────── */
+  async function startUpload(file) {
+    if (!file) return;
+    if (file.type !== "video/mp4") { setUploadMsg("Only MP4 files are accepted.", true); return; }
+    if (file.size > MAX_SIZE)      { setUploadMsg("File exceeds the 100 MB limit.", true); return; }
+
+    /* Update drop zone to show progress */
+    dropIcon.textContent = "…";
+    dropText.innerHTML = "<strong>" + file.name + "</strong><br><span style='font-size:0.8125rem;color:var(--text-subtle);'>Uploading…</span>";
+    fileInput.disabled = true;
+
+    var fd = new FormData();
+    fd.append("file", file);
+
+    var result;
+    try {
+      var res = await fetch("/api/uploads", { method: "POST", credentials: "same-origin", body: fd });
+      var body = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        dropIcon.textContent = "↑";
+        dropText.innerHTML = "<strong>Click to try again</strong><br><span style='font-size:0.8125rem;color:var(--text-subtle);'>MP4 only · Max 100 MB</span>";
+        fileInput.disabled = false;
+        setUploadMsg("Upload failed: " + errMsg(body, res.status, res.statusText), true);
+        return;
+      }
+      result = body;
+    } catch (_) {
+      dropIcon.textContent = "↑";
+      dropText.innerHTML = "<strong>Click to try again</strong><br><span style='font-size:0.8125rem;color:var(--text-subtle);'>MP4 only · Max 100 MB</span>";
+      fileInput.disabled = false;
+      setUploadMsg("Network error during upload. Please try again.", true);
+      return;
+    }
+
+    videoUrl = result.public_url;
+    dropIcon.textContent = "✓";
+    dropIcon.style.color = "var(--accent)";
+    dropText.innerHTML = "<strong style='color:var(--accent);'>Video uploaded</strong><br><span style='font-size:0.8125rem;color:var(--text-subtle);'>" + file.name + "</span>";
+    dropZone.style.borderColor = "var(--accent)";
+    uploadStatus.innerHTML = "";
+    stepDetails.style.display = "block";
+    stepDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   fileInput.addEventListener("change", function () {
-    var f = fileInput.files[0];
-    if (!f) return;
-    fileNameEl.textContent = f.name + " (" + (f.size / 1024 / 1024).toFixed(1) + " MB)";
-    fileNameEl.style.color = "var(--text-muted)";
-    uploadBtn.disabled = false;
+    if (fileInput.files[0]) startUpload(fileInput.files[0]);
   });
 
   /* ── Drag and drop ──────────────────────────────────────────────────── */
-  var dropZone = document.getElementById("drop-zone");
   dropZone.addEventListener("dragover", function (e) {
     e.preventDefault();
     dropZone.style.borderColor = "var(--accent)";
@@ -203,48 +242,9 @@
     e.preventDefault();
     dropZone.style.borderColor = "";
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      fileInput.files = e.dataTransfer.files;
-      fileInput.dispatchEvent(new Event("change"));
+      startUpload(e.dataTransfer.files[0]);
     }
   });
-
-  /* ── Upload ─────────────────────────────────────────────────────────── */
-  uploadBtn.addEventListener("click", async function () {
-    var file = fileInput.files[0];
-    if (!file) { showUploadErr("Please select a file."); return; }
-    if (file.type !== "video/mp4") { showUploadErr("Only MP4 files are accepted."); return; }
-    if (file.size > MAX_SIZE)      { showUploadErr("File exceeds the 100 MB limit."); return; }
-
-    uploadBtn.disabled = true;
-    setUploadMsg("Uploading…", false);
-
-    var fd = new FormData();
-    fd.append("file", file);
-
-    var result;
-    try {
-      var res = await fetch("/api/uploads", { method: "POST", credentials: "same-origin", body: fd });
-      var body = await res.json().catch(function () { return {}; });
-      if (!res.ok) { showUploadErr("Upload failed: " + errMsg(body, res.status, res.statusText)); uploadBtn.disabled = false; return; }
-      result = body;
-    } catch (_) {
-      showUploadErr("Network error during upload. Please try again.");
-      uploadBtn.disabled = false;
-      return;
-    }
-
-    videoUrl = result.public_url;
-    setUploadMsg('<span style="color:var(--accent);font-weight:600;">✓ Video uploaded successfully</span>', false);
-    uploadBtn.textContent = "✓ Uploaded";
-    fileInput.disabled = true;
-    stepDetails.style.display = "block";
-    stepDetails.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-
-  function setUploadMsg(html, isError) {
-    uploadStatus.innerHTML = "<p style='font-size:0.9rem;color:" + (isError ? "var(--danger)" : "var(--text-muted)") + ";'>" + html + "</p>";
-  }
-  function showUploadErr(msg) { setUploadMsg(msg, true); }
 
   /* ── Add / remove option buttons ────────────────────────────────────── */
   var optCounters = {};
