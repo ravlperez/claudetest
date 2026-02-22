@@ -246,8 +246,8 @@ def page_login_submit(
     return redirect
 
 
-@router.post("/logout")
-def logout(_csrf: None = Depends(require_csrf)):
+@router.get("/logout")
+def logout():
     redirect = RedirectResponse(url="/login", status_code=303)
     redirect.delete_cookie(key=SESSION_COOKIE)
     return redirect
