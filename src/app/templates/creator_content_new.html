@@ -219,6 +219,10 @@
     }
 
     videoUrl = result.public_url;
+    /* Remove the invisible file input so it can't block clicks on step 2/3 */
+    fileInput.style.display = "none";
+    dropZone.style.cursor = "default";
+    dropZone.style.pointerEvents = "none";
     dropIcon.textContent = "✓";
     dropIcon.style.color = "var(--accent)";
     dropText.innerHTML = "<strong style='color:var(--accent);'>Video uploaded</strong><br><span style='font-size:0.8125rem;color:var(--text-subtle);'>" + file.name + "</span>";
