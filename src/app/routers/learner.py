@@ -24,12 +24,11 @@ Pagination strategy (GET /api/feed):
 import base64
 import json
 import logging
-import pathlib
+
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, field_validator
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
@@ -51,8 +50,7 @@ from src.app.models import (
     XPReason,
 )
 
-_BASE_DIR = pathlib.Path(__file__).parent.parent
-templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
+from src.app.shared_templates import templates
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

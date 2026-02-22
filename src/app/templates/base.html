@@ -766,10 +766,15 @@
   <header class="app-nav">
     <div class="app-nav__inner">
       <a href="/" class="app-nav__logo">Language<span>App</span></a>
+      {% set _role = user_role(request) %}
       <nav class="app-nav__links" aria-label="App navigation">
+        {% if _role != 'creator' %}
         <a href="/feed"     class="nav-link" data-path="/feed">Feed</a>
         <a href="/progress" class="nav-link" data-path="/progress">Progress</a>
+        {% endif %}
+        {% if _role != 'learner' %}
         <a href="/creator"  class="nav-link" data-path="/creator">Creator</a>
+        {% endif %}
       </nav>
       <div class="app-nav__spacer"></div>
       <a href="/logout" class="app-nav__logout">Log out</a>

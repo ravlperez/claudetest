@@ -1,17 +1,14 @@
 import logging
-import pathlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from src.app.database import engine
 from src.app.routers import auth as auth_router
 from src.app.routers import creator as creator_router
 from src.app.routers import learner as learner_router
-
-BASE_DIR = pathlib.Path(__file__).parent
+from src.app.shared_templates import templates
 
 
 @asynccontextmanager
@@ -41,9 +38,6 @@ async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSON
 app.include_router(auth_router.router)
 app.include_router(creator_router.router)
 app.include_router(learner_router.router)
-
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
 
 @app.get("/health")
 def health():
