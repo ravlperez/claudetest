@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}New Content – Language App{% endblock %}
+{% block title %}Create New Content – Language App{% endblock %}
 
 {% block content %}
 <div class="container--narrow">
@@ -8,38 +8,62 @@
 
   <div class="page-header">
     <h1 class="page-title">Create New Content</h1>
-    <p class="page-subtitle">
-      Fill in the details below.
-      <a href="/creator/upload" style="color:var(--accent);font-weight:500;">Upload your video first →</a>
-    </p>
+    <p class="page-subtitle">Upload a video, fill in the details, then add quiz questions — all in one step.</p>
   </div>
 
-  <div class="card">
+  <!-- ── Step 1: Video Upload ─────────────────────────────────────────── -->
+  <div class="card" id="step-upload">
+    <div class="card-header">
+      <span class="card-header__title">Step 1 · Upload Video</span>
+    </div>
     <div class="card-body">
-      <form method="post" action="/creator/content">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="file-drop-zone" id="drop-zone">
+        <div class="file-drop-icon">↑</div>
+        <p class="file-drop-text">
+          <strong>Click to browse</strong> or drag and drop<br>
+          <span style="font-size:0.8125rem;color:var(--text-subtle);">MP4 only · Max 100 MB</span>
+        </p>
+        <input type="file" id="file-input" accept="video/mp4" class="file-input-hidden">
+      </div>
+      <p class="form-hint" id="file-name-display" style="margin-top:8px;"></p>
+      <div class="actions" style="margin-top:12px;">
+        <button type="button" id="upload-btn" class="btn btn-primary" disabled>Upload video →</button>
+      </div>
+      <div id="upload-status" aria-live="polite" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- ── Steps 2 + 3: Details + Quiz (revealed after upload) ──────────── -->
+  <div id="step-details" style="display:none;">
+
+    <!-- Content Details -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <span class="card-header__title">Step 2 · Content Details</span>
+        <span class="chip chip-accent">✓ Video uploaded</span>
+      </div>
+      <div class="card-body">
 
         <div class="form-group">
-          <label class="form-label" for="title">
-            Title <span class="req">*</span>
+          <label class="form-label" for="inp-title">
+            Title <span style="color:var(--danger);">*</span>
           </label>
-          <input class="form-input" type="text" id="title" name="title"
-                 maxlength="255" required placeholder="e.g. Spanish verb ser — beginner introduction">
+          <input class="form-input" type="text" id="inp-title" maxlength="255"
+                 placeholder="e.g. Present Tense in 5 Minutes">
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div class="form-group">
-            <label class="form-label" for="language">Language <span class="req">*</span></label>
-            <select class="form-select" id="language" name="language" required>
+            <label class="form-label" for="inp-language">Language</label>
+            <select class="form-select" id="inp-language">
               {% for lang in languages %}
               <option value="{{ lang }}">{{ lang }}</option>
               {% endfor %}
             </select>
           </div>
-
           <div class="form-group">
-            <label class="form-label" for="level">CEFR Level <span class="req">*</span></label>
-            <select class="form-select" id="level" name="level" required>
+            <label class="form-label" for="inp-level">CEFR Level</label>
+            <select class="form-select" id="inp-level">
               {% for lvl in levels %}
               <option value="{{ lvl }}">{{ lvl }}</option>
               {% endfor %}
@@ -48,27 +72,311 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="video_url">
-            Video URL <span class="req">*</span>
+          <label class="form-label" for="inp-caption">
+            Caption <span style="font-weight:400;color:var(--text-subtle);">optional</span>
           </label>
-          <input class="form-input" type="url" id="video_url" name="video_url"
-                 required placeholder="https://pub-xxx.r2.dev/videos/…">
-          <p class="form-hint">Paste the public URL from the upload page.</p>
+          <textarea class="form-textarea" id="inp-caption" rows="3"
+                    placeholder="Short description shown below the video…"></textarea>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="caption">Caption <span style="font-weight:400;color:var(--text-subtle);">(optional)</span></label>
-          <textarea class="form-textarea" id="caption" name="caption" rows="3"
-                    placeholder="Short description of what learners will practice…"></textarea>
-        </div>
-
-        <div class="actions" style="margin-top:8px;">
-          <button class="btn btn-primary" type="submit">Save draft →</button>
-          <a href="/creator" class="btn btn-ghost">Cancel</a>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
+
+    <!-- Quiz Questions -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <span class="card-header__title">Step 3 · Quiz Questions</span>
+        <span style="font-size:0.8125rem;color:var(--text-subtle);">3–5 required · 2–6 options each</span>
+      </div>
+      <div class="card-body" style="padding-top:8px;">
+
+        {% for slot in range(1, 6) %}
+        <div class="fieldset-card" id="q{{ slot }}" style="margin-bottom:12px;">
+          <div class="fieldset-card__legend">
+            <span style="width:26px;height:26px;background:rgba(0,212,138,0.10);border:1px solid rgba(0,212,138,0.20);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--accent);">{{ slot }}</span>
+            Question {{ slot }}
+            {% if slot <= 3 %}
+              <span class="chip chip-danger">required</span>
+            {% else %}
+              <span class="chip chip-muted">optional</span>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="q{{ slot }}_prompt">Prompt</label>
+            <textarea class="form-textarea" id="q{{ slot }}_prompt" rows="2"
+                      placeholder="e.g. Which sentence is correct?"></textarea>
+          </div>
+
+          <div class="form-group" style="margin-bottom:8px;">
+            <label class="form-label">Options <span style="font-weight:400;color:var(--text-subtle);">(mark the correct answer)</span></label>
+          </div>
+
+          {% for opt in range(1, 5) %}
+          <div class="quiz-option">
+            <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+                   id="q{{ slot }}_r{{ opt }}">
+            <label for="q{{ slot }}_r{{ opt }}" class="quiz-option-label">{{ ["A","B","C","D"][opt-1] }}</label>
+            <input type="text" id="q{{ slot }}_opt{{ opt }}" class="form-input"
+                   placeholder="Option {{ ['A','B','C','D'][opt-1] }}">
+          </div>
+          {% endfor %}
+
+          {% for opt in range(5, 7) %}
+          <div id="q{{ slot }}_extra{{ opt }}" class="quiz-option" style="display:none;">
+            <input type="radio" name="q{{ slot }}_correct" value="{{ opt - 1 }}"
+                   id="q{{ slot }}_r{{ opt }}">
+            <label for="q{{ slot }}_r{{ opt }}" class="quiz-option-label">{{ ["E","F"][opt-5] }}</label>
+            <input type="text" id="q{{ slot }}_opt{{ opt }}" class="form-input"
+                   placeholder="Option {{ ['E','F'][opt-5] }}">
+          </div>
+          {% endfor %}
+
+          <div class="actions" style="margin-top:10px;">
+            <button type="button" class="add-opt-btn btn btn-ghost btn-sm" data-q="{{ slot }}">+ Add option</button>
+            <button type="button" class="rm-opt-btn btn btn-ghost btn-sm" data-q="{{ slot }}" style="display:none;">− Remove last</button>
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- Save actions -->
+    <div class="actions" style="margin-top:16px;">
+      <button type="button" id="save-btn" class="btn btn-primary">Save Draft →</button>
+    </div>
+    <div id="save-status" aria-live="polite" style="margin-top:14px;font-size:0.9rem;"></div>
+
+  </div><!-- /step-details -->
 
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  "use strict";
+
+  /* ── State ──────────────────────────────────────────────────────────── */
+  var videoUrl  = null;
+  var NUM_SLOTS = 5;
+  var MAX_SIZE  = 100 * 1024 * 1024; // 100 MB
+
+  /* ── DOM refs ───────────────────────────────────────────────────────── */
+  var fileInput    = document.getElementById("file-input");
+  var uploadBtn    = document.getElementById("upload-btn");
+  var uploadStatus = document.getElementById("upload-status");
+  var fileNameEl   = document.getElementById("file-name-display");
+  var stepDetails  = document.getElementById("step-details");
+  var saveBtn      = document.getElementById("save-btn");
+  var saveStatus   = document.getElementById("save-status");
+
+  /* ── Error message extractor ────────────────────────────────────────── */
+  function errMsg(body, status, statusText) {
+    if (typeof body.detail === "string" && body.detail)
+      return body.detail;
+    if (Array.isArray(body.detail) && body.detail.length)
+      return body.detail.map(function (e) { return e.msg || JSON.stringify(e); }).join("; ");
+    if (body.error && body.error.message)
+      return body.error.message;
+    return statusText || ("HTTP " + status);
+  }
+
+  /* ── File picker ────────────────────────────────────────────────────── */
+  fileInput.addEventListener("change", function () {
+    var f = fileInput.files[0];
+    if (!f) return;
+    fileNameEl.textContent = f.name + " (" + (f.size / 1024 / 1024).toFixed(1) + " MB)";
+    fileNameEl.style.color = "var(--text-muted)";
+    uploadBtn.disabled = false;
+  });
+
+  /* ── Drag and drop ──────────────────────────────────────────────────── */
+  var dropZone = document.getElementById("drop-zone");
+  dropZone.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--accent)";
+  });
+  dropZone.addEventListener("dragleave", function () { dropZone.style.borderColor = ""; });
+  dropZone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "";
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event("change"));
+    }
+  });
+
+  /* ── Upload ─────────────────────────────────────────────────────────── */
+  uploadBtn.addEventListener("click", async function () {
+    var file = fileInput.files[0];
+    if (!file) { showUploadErr("Please select a file."); return; }
+    if (file.type !== "video/mp4") { showUploadErr("Only MP4 files are accepted."); return; }
+    if (file.size > MAX_SIZE)      { showUploadErr("File exceeds the 100 MB limit."); return; }
+
+    uploadBtn.disabled = true;
+    setUploadMsg("Uploading…", false);
+
+    var fd = new FormData();
+    fd.append("file", file);
+
+    var result;
+    try {
+      var res = await fetch("/api/uploads", { method: "POST", credentials: "same-origin", body: fd });
+      var body = await res.json().catch(function () { return {}; });
+      if (!res.ok) { showUploadErr("Upload failed: " + errMsg(body, res.status, res.statusText)); uploadBtn.disabled = false; return; }
+      result = body;
+    } catch (_) {
+      showUploadErr("Network error during upload. Please try again.");
+      uploadBtn.disabled = false;
+      return;
+    }
+
+    videoUrl = result.public_url;
+    setUploadMsg('<span style="color:var(--accent);font-weight:600;">✓ Video uploaded successfully</span>', false);
+    uploadBtn.textContent = "✓ Uploaded";
+    fileInput.disabled = true;
+    stepDetails.style.display = "block";
+    stepDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function setUploadMsg(html, isError) {
+    uploadStatus.innerHTML = "<p style='font-size:0.9rem;color:" + (isError ? "var(--danger)" : "var(--text-muted)") + ";'>" + html + "</p>";
+  }
+  function showUploadErr(msg) { setUploadMsg(msg, true); }
+
+  /* ── Add / remove option buttons ────────────────────────────────────── */
+  var optCounters = {};
+  for (var s = 1; s <= NUM_SLOTS; s++) { optCounters[s] = 4; }
+
+  document.querySelectorAll(".add-opt-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var q = parseInt(this.dataset.q, 10);
+      if (optCounters[q] >= 6) return;
+      optCounters[q]++;
+      var el = document.getElementById("q" + q + "_extra" + optCounters[q]);
+      if (el) el.style.display = "flex";
+      document.querySelector(".rm-opt-btn[data-q='" + q + "']").style.display = "inline-flex";
+      if (optCounters[q] >= 6) this.style.display = "none";
+    });
+  });
+
+  document.querySelectorAll(".rm-opt-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var q = parseInt(this.dataset.q, 10);
+      if (optCounters[q] <= 4) return;
+      var el = document.getElementById("q" + q + "_extra" + optCounters[q]);
+      if (el) {
+        el.style.display = "none";
+        var inp = el.querySelector("input[type=text]");  if (inp) inp.value   = "";
+        var rad = el.querySelector("input[type=radio]"); if (rad) rad.checked = false;
+      }
+      optCounters[q]--;
+      document.querySelector(".add-opt-btn[data-q='" + q + "']").style.display = "inline-flex";
+      if (optCounters[q] <= 4) this.style.display = "none";
+    });
+  });
+
+  /* ── Collect quiz ───────────────────────────────────────────────────── */
+  function collectQuestions() {
+    var qs = [];
+    for (var slot = 1; slot <= NUM_SLOTS; slot++) {
+      var promptEl = document.getElementById("q" + slot + "_prompt");
+      var prompt = (promptEl ? promptEl.value : "").trim();
+      if (!prompt) continue;
+      var options = [];
+      for (var o = 1; o <= 6; o++) {
+        var optEl = document.getElementById("q" + slot + "_opt" + o);
+        if (!optEl) continue;
+        var v = (optEl.value || "").trim();
+        if (v) options.push(v);
+      }
+      var radio = document.querySelector("input[name='q" + slot + "_correct']:checked");
+      qs.push({ prompt: prompt, options: options, correct_option_index: radio ? parseInt(radio.value, 10) : -1 });
+    }
+    return qs;
+  }
+
+  /* ── Save ───────────────────────────────────────────────────────────── */
+  saveBtn.addEventListener("click", async function () {
+    if (!videoUrl) { setSaveStatus("Please upload a video first.", true); return; }
+
+    var title   = (document.getElementById("inp-title").value || "").trim();
+    if (!title) { setSaveStatus("Please enter a title.", true); return; }
+
+    var language = document.getElementById("inp-language").value;
+    var level    = document.getElementById("inp-level").value;
+    var captionRaw = (document.getElementById("inp-caption").value || "").trim();
+    var caption  = captionRaw || null;
+
+    var questions = collectQuestions();
+    if (questions.length < 3 || questions.length > 5) {
+      setSaveStatus("Please fill in 3–5 quiz questions.", true); return;
+    }
+    for (var i = 0; i < questions.length; i++) {
+      if (questions[i].options.length < 2) {
+        setSaveStatus("Question " + (i + 1) + " needs at least 2 options.", true); return;
+      }
+      if (questions[i].correct_option_index < 0) {
+        setSaveStatus("Question " + (i + 1) + ": please mark the correct answer.", true); return;
+      }
+      if (questions[i].correct_option_index >= questions[i].options.length) {
+        setSaveStatus("Question " + (i + 1) + ": correct answer is out of range.", true); return;
+      }
+    }
+
+    saveBtn.disabled = true;
+    setSaveStatus("Saving content…", false);
+
+    /* Step A: create content */
+    var contentId;
+    try {
+      var res = await fetch("/api/creator/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ title: title, language: language, level: level, caption: caption, video_url: videoUrl }),
+      });
+      var body = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        setSaveStatus("Error saving content: " + errMsg(body, res.status, res.statusText), true);
+        saveBtn.disabled = false; return;
+      }
+      contentId = body.id;
+    } catch (_) {
+      setSaveStatus("Network error. Please try again.", true);
+      saveBtn.disabled = false; return;
+    }
+
+    /* Step B: save quiz */
+    setSaveStatus("Saving quiz…", false);
+    try {
+      var qres = await fetch("/api/creator/content/" + contentId + "/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ questions: questions }),
+      });
+      var qbody = await qres.json().catch(function () { return {}; });
+      if (!qres.ok) {
+        setSaveStatus("Content saved (id " + contentId + ") but quiz failed: " + errMsg(qbody, qres.status, qres.statusText), true);
+        saveBtn.disabled = false; return;
+      }
+    } catch (_) {
+      setSaveStatus("Content saved but quiz network error. Please try again.", true);
+      saveBtn.disabled = false; return;
+    }
+
+    setSaveStatus("Saved! Redirecting…", false);
+    setTimeout(function () { window.location.href = "/creator/content/" + contentId; }, 500);
+  });
+
+  function setSaveStatus(msg, isError) {
+    saveStatus.textContent = msg;
+    saveStatus.style.color = isError ? "var(--danger)" : "var(--text-muted)";
+  }
+
+}());
+</script>
 {% endblock %}
