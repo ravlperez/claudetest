@@ -8,7 +8,7 @@
 
   <div class="page-header">
     <h1 class="page-title">Upload a Video</h1>
-    <p class="page-subtitle">Select an MP4 file (max 100 MB). Files upload directly to storage.</p>
+    <p class="page-subtitle">Select an MP4 file (max 100 MB).</p>
   </div>
 
   <div class="card">
@@ -88,45 +88,27 @@
     }
 
     submitBtn.disabled = true;
-    setStatus("Requesting upload URL…", false);
-
-    // ── Step 1: get presigned URL ───────────────────────────────────────────
-    let presignData;
-    try {
-      const res = await fetch("/api/uploads/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ content_type: file.type, file_size: file.size }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(function () { return {}; });
-        setStatus("Error: " + (err.detail || res.statusText), true);
-        submitBtn.disabled = false;
-        return;
-      }
-      presignData = await res.json();
-    } catch (_) {
-      setStatus("Network error requesting upload URL.", true);
-      submitBtn.disabled = false;
-      return;
-    }
-
-    // ── Step 2: PUT file to R2 ──────────────────────────────────────────────
     setStatus("Uploading… (this may take a moment)", false);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    let result;
     try {
-      const uploadRes = await fetch(presignData.upload_url, {
-        method: "PUT",
-        headers: presignData.required_headers,
-        body: file,
+      const res = await fetch("/api/uploads", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
       });
-      if (!uploadRes.ok) {
-        setStatus("Upload failed (HTTP " + uploadRes.status + "). Please try again.", true);
+      const body = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        setStatus("Upload failed: " + (body.detail || res.statusText), true);
         submitBtn.disabled = false;
         return;
       }
+      result = body;
     } catch (_) {
-      setStatus("Network error during upload.", true);
+      setStatus("Network error during upload. Please try again.", true);
       submitBtn.disabled = false;
       return;
     }
@@ -147,8 +129,8 @@
     const urlBody = document.createElement("div");
     urlBody.className = "card-body";
     const urlLink = document.createElement("a");
-    urlLink.href = presignData.public_url;
-    urlLink.textContent = presignData.public_url;
+    urlLink.href = result.public_url;
+    urlLink.textContent = result.public_url;
     urlLink.target = "_blank";
     urlLink.rel = "noopener noreferrer";
     urlLink.style.cssText = "color:var(--accent);word-break:break-all;font-size:0.875rem;";
