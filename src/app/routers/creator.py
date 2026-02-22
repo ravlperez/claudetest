@@ -36,7 +36,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import select
@@ -185,6 +185,43 @@ class QuizCreateRequest(BaseModel):
 
 
 # ── API: uploads ───────────────────────────────────────────────────────────────
+
+_MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
+
+
+@router.post("/api/uploads")
+async def api_upload(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_creator),
+) -> dict:
+    """Accept a video file from the browser, upload it to R2, return its public URL."""
+    if file.content_type != "video/mp4":
+        raise HTTPException(status_code=422, detail="Only MP4 files are accepted.")
+
+    data = await file.read()
+    if len(data) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds the 100 MB limit.")
+
+    key = f"videos/{current_user.id}/{uuid.uuid4()}.mp4"
+
+    try:
+        client = get_r2_client()
+        bucket = get_bucket_name()
+        public_base = get_public_base_url()
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Storage not configured: missing environment variable {exc}",
+        )
+
+    client.put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=data,
+        ContentType="video/mp4",
+    )
+
+    return {"public_url": f"{public_base}/{key}"}
 
 
 @router.post("/api/uploads/presign")
