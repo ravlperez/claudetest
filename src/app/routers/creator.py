@@ -409,18 +409,17 @@ def api_create_quiz(
     if content.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not your content")
 
-    # Delete existing quiz + questions (replace semantics)
+    # Keep the Quiz row so QuizAttempt FKs stay valid; only replace Questions.
     existing = content.quiz
     if existing:
         for q in list(existing.questions):
             db.delete(q)
         db.flush()
-        db.delete(existing)
-        db.flush()
-
-    quiz = Quiz(content_id=content_id)
-    db.add(quiz)
-    db.flush()  # populate quiz.id
+        quiz = existing
+    else:
+        quiz = Quiz(content_id=content_id)
+        db.add(quiz)
+        db.flush()  # populate quiz.id
 
     for q_in in body.questions:
         db.add(
@@ -528,13 +527,10 @@ def form_create_content(
     return RedirectResponse(url=f"/creator/content/{content.id}", status_code=303)
 
 
-@router.get("/creator/upload", response_class=HTMLResponse)
-def page_creator_upload(
-    request: Request,
-    current_user: User = Depends(require_creator),
-):
-    """Render the video upload form (creator only)."""
-    return templates.TemplateResponse(request, "creator_upload.html", {})
+@router.get("/creator/upload")
+def page_creator_upload(current_user: User = Depends(require_creator)):
+    """Upload is now part of the unified creation flow."""
+    return RedirectResponse(url="/creator/content/new", status_code=301)
 
 
 # NOTE: /creator/content/{id}/quiz is registered BEFORE /creator/content/{id}

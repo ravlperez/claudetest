@@ -216,7 +216,17 @@
           window.location.href = "/creator/content/" + CONTENT_ID;
         }, 800);
       } else {
-        setStatus("Error: " + (body.detail || res.statusText), true);
+        var errMsg = "";
+        if (typeof body.detail === "string") {
+          errMsg = body.detail;
+        } else if (Array.isArray(body.detail) && body.detail.length) {
+          errMsg = body.detail.map(function (e) { return e.msg || JSON.stringify(e); }).join("; ");
+        } else if (body.error && body.error.message) {
+          errMsg = body.error.message;
+        } else {
+          errMsg = res.statusText || ("HTTP " + res.status);
+        }
+        setStatus("Error: " + errMsg, true);
         submitBtn.disabled = false;
       }
     } catch (_) {
