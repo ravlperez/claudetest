@@ -15,11 +15,9 @@ SSR (form + redirect):
 """
 
 import logging
-import pathlib
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -36,9 +34,7 @@ from src.app.auth import (
 from src.app.csrf import generate_csrf_token, require_csrf
 from src.app.database import get_db
 from src.app.models import Role, User
-
-_BASE_DIR = pathlib.Path(__file__).parent.parent
-templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
+from src.app.shared_templates import templates
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -241,7 +237,8 @@ def page_login_submit(
         )
 
     token = create_session_token(user.id, user.role.value)
-    redirect = RedirectResponse(url="/feed", status_code=303)
+    dest = "/creator" if user.role == Role.creator else "/feed"
+    redirect = RedirectResponse(url=dest, status_code=303)
     set_session_cookie(redirect, token)
     return redirect
 

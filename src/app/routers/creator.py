@@ -32,13 +32,12 @@ Publish rules (POST /api/creator/content/{id}/publish):
 
 import json
 import logging
-import pathlib
+
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -57,8 +56,7 @@ from src.app.models import (
 )
 from src.app.r2 import get_bucket_name, get_public_base_url, get_r2_client
 
-_BASE_DIR = pathlib.Path(__file__).parent.parent
-templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
+from src.app.shared_templates import templates
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
